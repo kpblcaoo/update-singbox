@@ -2,7 +2,7 @@ import pytest
 import subprocess
 import os
 import json
-from update_singbox import fetch_json, validate_server, generate_config
+from update_singbox import fetch_json, generate_config
 
 # Mock data for subscription
 MOCK_SERVERS = [
@@ -44,15 +44,6 @@ def test_fetch_json(mocker):
     assert len(data) == 2
     assert data[0]["server"] == "server1.example.com"
 
-def test_validate_server(mocker):
-    """Test server validation using check_availability.py."""
-    mocker.patch("subprocess.run")
-    subprocess.run.return_value.returncode = 0  # Simulate valid server
-
-    assert validate_server("server1.example.com", 443) is True
-    subprocess.run.return_value.returncode = 1  # Simulate invalid server
-    assert validate_server("server2.example.com", 443) is False
-
 def test_generate_config(mock_template_file, mock_config_file):
     """Test configuration generation."""
     valid_servers = [
@@ -68,5 +59,5 @@ def test_generate_config(mock_template_file, mock_config_file):
     assert CONFIG_FILE.exists()
     with open(CONFIG_FILE, "r") as f:
         config = json.load(f)
-        assert config["outbounds"][0]["type"] == "url-test"
+        assert config["outbounds"][0]["type"] == "urltest"
         assert config["outbounds"][0]["outbounds"][0]["server"] == "server1.example.com"

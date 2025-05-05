@@ -1,27 +1,5 @@
 #!/usr/bin/env python3
 """
-Скрипт для обновления конфигурации sing-box из удалённого JSON.
-
-Скрипт загружает конфигурацию прокси с указанного URL, проверяет выбранный протокол,
-создаёт файл конфигурации sing-box и управляет сервисом sing-box. Поддерживает протоколы:
-VLESS, Shadowsocks, VMess, Trojan, TUIC, Hysteria2.
-
-Использование:
-    python3 update_singbox.py -u <URL> [-r <remarks> | -i <index>] [-d]
-    Пример: python3 update_singbox.py -u https://example.com/config -r "Server1"
-    Пример: python3 update_singbox.py -u https://example.com/config -i 2 -d
-
-Переменные окружения:
-    SINGBOX_LOG_FILE: Путь к файлу логов (по умолчанию: /var/log/update-singbox.log)
-    SINGBOX_CONFIG_FILE: Путь к файлу конфигурации (по умолчанию: /etc/sing-box/config.json)
-    SINGBOX_BACKUP_FILE: Путь к бэкапу конфигурации (по умолчанию: /etc/sing-box/config.json.bak)
-    SINGBOX_TEMPLATE_FILE: Путь к шаблону конфигурации (по умолчанию: ./config.template.json)
-    SINGBOX_MAX_LOG_SIZE: Макс. размер лога в байтах (по умолчанию: 1048576)
-
-Требования:
-    Python 3.10 или новее (для конструкции match).
-
-
 Update sing-box configuration from a remote JSON source.
 
 This script fetches proxy configurations from a specified URL, validates the
@@ -43,6 +21,7 @@ Environment Variables:
 
 Requirements:
     Python 3.10 or later (for match statement).
+    requests library with SOCKS support (pip install requests[socks])
 """
 import argparse
 import json
@@ -52,9 +31,9 @@ import os
 import shutil
 import subprocess
 import sys
-import platform
-from urllib.request import Request, urlopen
-from urllib.error import URLError
+import requests
+import tempfile
+from urllib.parse import urlparse
 
 # Check Python version for match statement compatibility
 if sys.version_info < (3, 10):
@@ -62,7 +41,6 @@ if sys.version_info < (3, 10):
     sys.exit(1)
 
 # Configuration with environment variable fallbacks
-# Пути конфигурации с использованием переменных окружения
 LOG_FILE = os.getenv("SINGBOX_LOG_FILE", "/var/log/update-singbox.log")
 CONFIG_FILE = os.getenv("SINGBOX_CONFIG_FILE", "/etc/sing-box/config.json")
 BACKUP_FILE = os.getenv("SINGBOX_BACKUP_FILE", "/etc/sing-box/config.json.bak")
@@ -72,10 +50,16 @@ MAX_LOG_SIZE = int(os.getenv("SINGBOX_MAX_LOG_SIZE", "1048576"))  # 1MB
 # Supported protocols
 SUPPORTED_PROTOCOLS = {"vless", "shadowsocks", "vmess", "trojan", "tuic", "hysteria2"}
 
-def handle_error(message, exit_code=1):
-    """Log an error message and exit with the specified code."""
-    logging.error(f"Error: {message}")
-    sys.exit(exit_code)
+def handle_error(message, recover=False):
+    logging.error(message)
+    if recover and os.path.exists(BACKUP_FILE):
+        try:
+            shutil.copy2(BACKUP_FILE, CONFIG_FILE)
+            manage_service("restart")
+            logging.warning("Restored previous config from backup.")
+        except Exception as e:
+            logging.critical(f"Rollback failed: {e}")
+
 
 def setup_logging(debug):
     """Configure logging with file and syslog handlers."""
@@ -101,7 +85,7 @@ def rotate_logs():
     """Rotate log file if it exceeds MAX_LOG_SIZE."""
     if not os.path.exists(LOG_FILE):
         return
-    log_size = os.path.getsize(LOG_FILE)  # Cache file size
+    log_size = os.path.getsize(LOG_FILE)
     if log_size > MAX_LOG_SIZE:
         for i in range(5, 0, -1):
             old_log = f"{LOG_FILE}.{i}"
@@ -111,38 +95,66 @@ def rotate_logs():
         os.rename(LOG_FILE, f"{LOG_FILE}.1")
         open(LOG_FILE, "a").close()  # Create empty log file
 
-def fetch_json(url):
-    """Fetch JSON from URL."""
+
+def fetch_json(url, proxy=None):
+    """Fetch JSON from URL using requests with optional SOCKS proxy."""
     try:
-        req = Request(url, headers={"User-Agent": "ktor-client"})
-        with urlopen(req) as response:
-            return json.loads(response.read().decode()) 
-    except URLError as e:
+        # Configure proxy if provided
+        proxies = {}
+         # Ensure proxy starts with socks5:// or socks5h://
+        if proxy:
+            if not proxy.startswith(("socks5://", "socks5h://")):
+                proxy = f"socks5://{proxy}"
+            proxies = {"http": proxy, "https": proxy}
+        logging.debug(f"Fetching JSON from URL: {url} with proxy: {proxies}")
+        # Send request with User-Agent
+        response = requests.get(url, proxies=proxies, headers={"User-Agent": "ktor-client"})
+        logging.debug(f"Response Status Code: {response.status_code}")
+        logging.debug(f"Response Content: {response.text}")
+        response.raise_for_status() # Raise exception for HTTP errors
+        return response.json()
+    except requests.exceptions.RequestException as e:
         handle_error(f"Failed to fetch configuration from {url}: {e}")
-    except json.JSONDecodeError:
+    except ValueError:
         handle_error("Received invalid JSON from URL")
 
 def select_config(json_data, remarks, index):
     """Select proxy configuration by remarks or index."""
+    logging.debug(f"Fetched JSON data: {json_data}")
     if not json_data:
         handle_error("Received empty configuration")
     if remarks:
         for item in json_data:
             if item.get("remarks") == remarks:
+                logging.debug(f"Selected configuration by remarks: {item}")
                 return item.get("outbounds", [{}])[0]
         handle_error(f"No configuration found with remarks: {remarks}")
     try:
+        logging.debug(f"Selected configuration by index: {json_data[index]}")
         return json_data[index].get("outbounds", [{}])[0]
     except (IndexError, TypeError):
         handle_error(f"No configuration found at index: {index}")
 
-def validate_protocol(config):
-    """Validate protocol and extract parameters."""
-    protocol = config.get("protocol")
-    if protocol not in SUPPORTED_PROTOCOLS:
-        handle_error(f"Unsupported protocol: {protocol}")
+valid_outbounds = []
 
-    outbound = {"type": protocol, "tag": "proxy-out"}
+for idx, config in enumerate(json_data):
+    logging.info(f"Processing server at index {idx}")
+    try:
+        outbounds = config.get("outbounds", [])
+        for outbound_idx, outbound_config in enumerate(outbounds):
+            logging.info(f"Testing outbound at index {outbound_idx} for server {idx}")
+            try:
+                outbound = validate_protocol(outbound_config, outbound_idx, idx)
+                
+                # Check for duplicate tags
+                if not any(o["tag"] == outbound["tag"] for o in valid_outbounds):
+                    valid_outbounds.append(outbound)
+                else:
+                    logging.warning(f"Duplicate tag detected and skipped: {outbound['tag']}")
+            except Exception as e:
+                logging.error(f"Failed to process outbound at index {outbound_idx} for server {idx}: {e}")
+    except Exception as e:
+        logging.error(f"Failed to process server at index {idx}: {e}")
 
     # Protocol-specific handling using match statement
     match protocol:
@@ -304,24 +316,49 @@ def handle_security_and_transport(config, outbound, protocol):
             outbound["transport"] = transport_settings
     return outbound
 
-def generate_config(outbound):
-    """Generate sing-box configuration from template."""
-    if not os.path.exists(TEMPLATE_FILE):
-        handle_error(f"Template file not found: {TEMPLATE_FILE}")
+def generate_config(template_file, outbound_tags):
+    try:
+        with open(template_file, "r", encoding="utf-8") as f:
+            template = f.read()
 
-    if os.path.exists(CONFIG_FILE):
-        os.rename(CONFIG_FILE, BACKUP_FILE)
-        logging.info(f"Created backup: {BACKUP_FILE}")
+        config_str = template.replace("$outbound_json", json.dumps(outbound_tags, indent=2))
+        json.loads(config_str)  # Validate that the generated config is valid JSON
 
-    with open(TEMPLATE_FILE) as f:
-        template = f.read()
+        dir_name = os.path.dirname(CONFIG_FILE)
+        with tempfile.NamedTemporaryFile("w", delete=False, dir=dir_name, suffix=".json") as tmp:
+            tmp.write(config_str)
+            temp_path = tmp.name
 
-    # Replace $outbound_json with JSON string
-    config = template.replace("$outbound_json", json.dumps(outbound, indent=2))
+        subprocess.run(["sing-box", "check", "-c", temp_path], check=True)
 
+        if os.path.exists(CONFIG_FILE):
+            shutil.copy2(CONFIG_FILE, BACKUP_FILE)
+            logging.info(f"Created backup: {BACKUP_FILE}")
+
+        os.replace(temp_path, CONFIG_FILE)
+        logging.info(f"Config written to: {CONFIG_FILE}")
+
+        # Restart the service and check its status
+        if not manage_service():
+            raise RuntimeError("sing-box restart failed after config update")
+
+    except Exception as e:
+        handle_error(f"Failed to apply new config: {e}", recover=True)
+
+    # Create an array of outbound tags for urltest
+    outbound_tags_list = [o["tag"] for o in outbound_tags if "tag" in o]
+
+    # Replace $outbound_json in the template with the array of tags
+    config = template.replace("$outbound_json", json.dumps(outbound_tags_list, indent=2))
+
+    # Add all outbound objects (with servers and their settings)
+    full_config = json.loads(config)
+    full_config["outbounds"].extend(outbound_tags)
+
+    # Write the final configuration
     with open(CONFIG_FILE, "w") as f:
-        f.write(config)
-    logging.info(f"Configuration updated for {outbound['type']}")
+        f.write(json.dumps(full_config, indent=2))
+    logging.info(f"Configuration updated with outbound tags: {outbound_tags_list}")
 
     # Validate configuration with sing-box
     try:
@@ -347,18 +384,40 @@ def main():
     parser = argparse.ArgumentParser(description="Update sing-box configuration")
     parser.add_argument("-u", "--url", required=True, help="URL for proxy configuration")
     parser.add_argument("-r", "--remarks", help="Select server by remarks")
-    parser.add_argument("-i", "--index", type=int, default=0, help="Select server by index (default: 0)")
+    parser.add_argument("-i", "--index", type=int, default=None, help="Select server by index (default: None)")
     parser.add_argument("-d", "--debug", action="store_true", help="Enable debug logging")
+    parser.add_argument("--proxy", help="SOCKS5 proxy address (e.g., socks5://127.0.0.1:1080 or 127.0.0.1:1080)")
     args = parser.parse_args()
 
     setup_logging(args.debug)
     logging.info("=== Starting sing-box configuration update ===")
 
-    json_data = fetch_json(args.url)
-    config = select_config(json_data, args.remarks, args.index)
-    outbound = validate_protocol(config)
-    generate_config(outbound)
-    manage_service()
+    # Fetch JSON data from the provided URL
+    json_data = fetch_json(args.url, args.proxy)
+
+    # Process JSON data and validate configurations
+    valid_outbounds = []
+
+    for idx, config in enumerate(json_data):
+        logging.info(f"Processing server at index {idx}")
+        try:
+            outbounds = config.get("outbounds", [])
+            for outbound_idx, outbound_config in enumerate(outbounds):
+                logging.info(f"Testing outbound at index {outbound_idx} for server {idx}")
+                try:
+                    outbound = validate_protocol(outbound_config, outbound_idx, idx)
+                    valid_outbounds.append(outbound)
+                except Exception as e:
+                    logging.error(f"Failed to process outbound at index {outbound_idx} for server {idx}: {e}")
+        except Exception as e:
+            logging.error(f"Failed to process server at index {idx}: {e}")
+
+    # Generate configuration if valid outbounds are found
+    if valid_outbounds:
+        generate_config(TEMPLATE_FILE, valid_outbounds)
+    else:
+        logging.error("No valid outbounds found. Configuration update aborted.")
+
     logging.info("Update completed")
 
 if __name__ == "__main__":

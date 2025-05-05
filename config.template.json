@@ -17,18 +17,16 @@
   ],
   "outbounds": [
     {
-      "type": "url-test",
+      "type": "urltest",
       "tag": "auto-selector",
       "outbounds": [
         $outbound_json
       ],
       "url": "http://www.google.com/generate_204",
       "interval": "30s",
-      "health_check": {
-        "enable": true,
-        "timeout": "5s",
-        "interval": "30s"
-      }
+      "tolerance": 3,
+      "idle_timeout": "5s",
+      "interrupt_exist_connections": false
     },
     {
       "type": "direct",
