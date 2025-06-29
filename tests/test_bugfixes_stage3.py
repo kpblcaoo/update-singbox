@@ -4,9 +4,7 @@ This file tests ONLY the specific bugs that were fixed, not general functionalit
 """
 
 import pytest
-import json
 import logging
-from datetime import timezone
 from unittest.mock import patch, Mock
 from pydantic import ValidationError
 
@@ -182,4 +180,4 @@ class TestBugFix8ReturnTypeAnnotations:
         
         # BUG FIX: Function should have -> None return type annotation
         sig = inspect.signature(_output_env_format)
-        assert sig.return_annotation == type(None) or sig.return_annotation is None 
+        assert sig.return_annotation is None 

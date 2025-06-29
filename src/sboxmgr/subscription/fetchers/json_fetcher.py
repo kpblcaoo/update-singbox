@@ -8,6 +8,7 @@ import requests
 from ..base_fetcher import BaseFetcher
 from ..registry import register
 import threading
+from typing import Dict, Tuple, Optional
 
 @register("url_json")
 class JSONFetcher(BaseFetcher):
@@ -22,7 +23,7 @@ class JSONFetcher(BaseFetcher):
         _fetch_cache: Cache dictionary for storing fetched JSON data.
     """
     _cache_lock = threading.Lock()
-    _fetch_cache = {}
+    _fetch_cache: Dict[Tuple[str, Optional[str], str], bytes] = {}
 
     def fetch(self, force_reload: bool = False) -> bytes:
         """Загружает подписку в формате JSON с поддержкой лимита размера и in-memory кешированием.

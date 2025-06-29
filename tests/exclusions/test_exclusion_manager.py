@@ -1,9 +1,7 @@
 """Tests for the new ExclusionManager architecture."""
 
-import pytest
 import json
-from pathlib import Path
-from datetime import datetime, timezone
+from unittest.mock import patch
 
 from sboxmgr.core.exclusions import ExclusionManager, ExclusionEntry, ExclusionList
 
@@ -137,10 +135,24 @@ class TestExclusionManager:
     
     def test_default_singleton(self):
         """Test default singleton pattern."""
-        manager1 = ExclusionManager.default()
-        manager2 = ExclusionManager.default()
+        # Reset singleton before test
+        ExclusionManager._default_instance = None
         
-        assert manager1 is manager2  # Same instance
+        # Mock get_exclusion_file to return consistent path
+        with patch('sboxmgr.utils.env.get_exclusion_file') as mock_get_path:
+            mock_get_path.return_value = "/test/path/exclusions.json"
+            
+            manager1 = ExclusionManager.default()
+            manager2 = ExclusionManager.default()
+            
+            # Same instance if same path
+            assert manager1 is manager2  # Same instance
+            
+            # Test that different paths create different instances
+            # This tests the new behavior where singleton respects env changes
+            mock_get_path.return_value = "/different/path/exclusions.json"
+            manager3 = ExclusionManager.default()
+            assert manager3 is not manager1  # Different instance for different path
     
     def test_stats(self, tmp_path):
         """Test exclusion statistics."""

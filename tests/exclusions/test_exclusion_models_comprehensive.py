@@ -1,10 +1,7 @@
 #!/usr/bin/env python3
 """Comprehensive tests for exclusion models to kill all mutations."""
 
-import pytest
-import json
 from datetime import datetime, timezone, timedelta
-from dataclasses import FrozenInstanceError
 
 from sboxmgr.core.exclusions.models import ExclusionEntry, ExclusionList
 

@@ -1,0 +1,231 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "AppConfig",
+  "description": "Main application configuration.\n\nImplements ADR-0009 hierarchical configuration with Pydantic BaseSettings.\nCombines all configuration sections with proper validation.",
+  "generator": "sboxmgr-schema-generator",
+  "version": "1.0.0",
+  "$defs": {
+    "AppSettings": {
+      "additionalProperties": false,
+      "description": "Core application settings section.",
+      "properties": {
+        "name": {
+          "default": "sboxmgr",
+          "description": "Application name",
+          "title": "Name",
+          "type": "string"
+        },
+        "version": {
+          "default": "0.2.0",
+          "description": "Application version",
+          "title": "Version",
+          "type": "string"
+        },
+        "debug": {
+          "default": false,
+          "description": "Enable debug mode",
+          "title": "Debug",
+          "type": "boolean"
+        },
+        "verbose": {
+          "default": false,
+          "description": "Enable verbose output",
+          "title": "Verbose",
+          "type": "boolean"
+        }
+      },
+      "title": "AppSettings",
+      "type": "object"
+    },
+    "LoggingConfig": {
+      "additionalProperties": false,
+      "description": "Logging configuration with multi-sink support.\n\nImplements LOG-01, LOG-02, LOG-03 from ADR-0010.\nSupports hierarchical log levels and automatic sink detection.",
+      "properties": {
+        "level": {
+          "default": "INFO",
+          "description": "Global logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)",
+          "title": "Level",
+          "type": "string"
+        },
+        "format": {
+          "default": "text",
+          "description": "Log output format (text for CLI, json for service)",
+          "enum": [
+            "text",
+            "json"
+          ],
+          "title": "Format",
+          "type": "string"
+        },
+        "sinks": {
+          "default": [
+            "auto"
+          ],
+          "description": "Logging sinks (auto, stdout, journald, syslog, file)",
+          "items": {
+            "type": "string"
+          },
+          "title": "Sinks",
+          "type": "array"
+        },
+        "sink_levels": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Per-sink log level overrides",
+          "title": "Sink Levels",
+          "type": "object"
+        },
+        "file_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Log file path (when file sink is used)",
+          "title": "File Path"
+        },
+        "max_file_size": {
+          "default": 10000000,
+          "description": "Maximum log file size in bytes",
+          "title": "Max File Size",
+          "type": "integer"
+        },
+        "backup_count": {
+          "default": 5,
+          "description": "Number of backup log files to keep",
+          "title": "Backup Count",
+          "type": "integer"
+        },
+        "enable_trace_id": {
+          "default": true,
+          "description": "Enable trace ID generation and propagation",
+          "title": "Enable Trace Id",
+          "type": "boolean"
+        },
+        "structured_metadata": {
+          "default": true,
+          "description": "Include structured metadata in log entries",
+          "title": "Structured Metadata",
+          "type": "boolean"
+        }
+      },
+      "title": "LoggingConfig",
+      "type": "object"
+    },
+    "ServiceConfig": {
+      "additionalProperties": false,
+      "description": "Service mode configuration.\n\nImplements CONFIG-02 service mode detection and daemon settings.",
+      "properties": {
+        "service_mode": {
+          "description": "Enable service/daemon mode",
+          "title": "Service Mode",
+          "type": "boolean"
+        },
+        "pid_file": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "PID file path for daemon mode",
+          "title": "Pid File"
+        },
+        "user": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "User to run service as",
+          "title": "User"
+        },
+        "group": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Group to run service as",
+          "title": "Group"
+        },
+        "health_check_port": {
+          "default": 8080,
+          "description": "Port for health check endpoint",
+          "title": "Health Check Port",
+          "type": "integer"
+        },
+        "health_check_enabled": {
+          "default": true,
+          "description": "Enable health check endpoint",
+          "title": "Health Check Enabled",
+          "type": "boolean"
+        },
+        "metrics_port": {
+          "default": 9090,
+          "description": "Port for metrics endpoint",
+          "title": "Metrics Port",
+          "type": "integer"
+        },
+        "metrics_enabled": {
+          "default": true,
+          "description": "Enable metrics collection and endpoint",
+          "title": "Metrics Enabled",
+          "type": "boolean"
+        }
+      },
+      "title": "ServiceConfig",
+      "type": "object"
+    }
+  },
+  "additionalProperties": true,
+  "properties": {
+    "config_file": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Path to configuration file (TOML format)",
+      "title": "Config File"
+    },
+    "container_mode": {
+      "description": "Detected container environment",
+      "title": "Container Mode",
+      "type": "boolean"
+    },
+    "app": {
+      "$ref": "#/$defs/AppSettings",
+      "description": "Core application settings"
+    },
+    "logging": {
+      "$ref": "#/$defs/LoggingConfig",
+      "description": "Logging configuration"
+    },
+    "service": {
+      "$ref": "#/$defs/ServiceConfig",
+      "description": "Service mode configuration"
+    }
+  },
+  "type": "object"
+}

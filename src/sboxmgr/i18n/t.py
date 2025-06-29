@@ -7,7 +7,6 @@ avoid repeated language file loading.
 from functools import lru_cache
 from .loader import LanguageLoader
 
-@lru_cache()
 def current_lang() -> LanguageLoader:
     """Get cached instance of the current language loader.
     

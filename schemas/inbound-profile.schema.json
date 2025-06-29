@@ -1,0 +1,59 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "InboundProfile",
+  "description": "Configuration profile for inbound proxy interfaces.\n\nDefines parameters for incoming proxy connections including type,\nbind address, port, and protocol-specific options. Includes security\nvalidations to ensure safe defaults.\n\nSecurity features:\n- Defaults to localhost binding (127.0.0.1)\n- Uses safe non-standard port defaults\n- Validates port ranges and bind addresses\n- Requires explicit confirmation for external binding\n\nAttributes:\n    type: Inbound type (socks, http, tun, tproxy, ssh, dns, etc.).\n    listen: Bind address (defaults to 127.0.0.1 for security).\n    port: Port number (defaults to safe values per type).\n    options: Additional protocol-specific options.",
+  "generator": "sboxmgr-schema-generator",
+  "version": "1.0.0",
+  "properties": {
+    "type": {
+      "enum": [
+        "socks",
+        "http",
+        "tun",
+        "tproxy",
+        "ssh",
+        "dns",
+        "reality-inbound",
+        "shadowtls"
+      ],
+      "title": "Type",
+      "type": "string"
+    },
+    "listen": {
+      "default": "127.0.0.1",
+      "description": "Адрес для bind, по умолчанию localhost.",
+      "title": "Listen",
+      "type": "string"
+    },
+    "port": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Порт, по умолчанию безопасный для типа.",
+      "title": "Port"
+    },
+    "options": {
+      "anyOf": [
+        {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Дополнительные параметры.",
+      "title": "Options"
+    }
+  },
+  "required": [
+    "type"
+  ],
+  "type": "object"
+}

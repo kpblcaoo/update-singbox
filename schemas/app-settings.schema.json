@@ -1,0 +1,35 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "AppSettings",
+  "description": "Core application settings section.",
+  "generator": "sboxmgr-schema-generator",
+  "version": "1.0.0",
+  "additionalProperties": false,
+  "properties": {
+    "name": {
+      "default": "sboxmgr",
+      "description": "Application name",
+      "title": "Name",
+      "type": "string"
+    },
+    "version": {
+      "default": "0.2.0",
+      "description": "Application version",
+      "title": "Version",
+      "type": "string"
+    },
+    "debug": {
+      "default": false,
+      "description": "Enable debug mode",
+      "title": "Debug",
+      "type": "boolean"
+    },
+    "verbose": {
+      "default": false,
+      "description": "Enable verbose output",
+      "title": "Verbose",
+      "type": "boolean"
+    }
+  },
+  "type": "object"
+}

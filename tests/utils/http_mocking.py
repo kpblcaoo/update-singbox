@@ -100,7 +100,6 @@ def setup_version_mock(monkeypatch, version="1.11.5"):
         monkeypatch: pytest monkeypatch fixture  
         version (str): Version to return from sing-box --version
     """
-    from unittest.mock import patch
     
     def mock_run(*args, **kwargs):
         """Mock subprocess.run for sing-box version detection."""

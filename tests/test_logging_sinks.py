@@ -3,9 +3,7 @@
 import pytest
 import logging
 import sys
-import os
-from unittest.mock import patch, MagicMock, mock_open
-from pathlib import Path
+from unittest.mock import patch
 
 from sboxmgr.logging.sinks import (
     LogSink,
@@ -13,8 +11,6 @@ from sboxmgr.logging.sinks import (
     create_handler,
     _is_journald_available,
     _is_syslog_available,
-    _create_stdout_handler,
-    _create_stderr_handler,
     _create_file_handler,
 )
 from sboxmgr.config.models import LoggingConfig

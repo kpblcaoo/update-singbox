@@ -5,8 +5,8 @@ unified interface, and error handling capabilities.
 """
 
 import pytest
-from unittest.mock import Mock, patch, MagicMock
-from typing import List, Dict, Any
+from unittest.mock import Mock, patch
+from typing import Dict
 
 from sboxmgr.core import (
     Orchestrator, 

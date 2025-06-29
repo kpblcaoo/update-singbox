@@ -1,13 +1,13 @@
-"""Core exclusions package - modern exclusion management with DI support."""
+"""Exclusion management module."""
 
-from .interface import ExclusionManagerInterface
+from ..interfaces import ExclusionManagerInterface
 from .manager import ExclusionManager
 from .models import ExclusionEntry, ExclusionList
 
 # Clean API exports
 __all__ = [
+    "ExclusionManager",
     "ExclusionManagerInterface",
-    "ExclusionManager", 
     "ExclusionEntry",
     "ExclusionList",
 ]

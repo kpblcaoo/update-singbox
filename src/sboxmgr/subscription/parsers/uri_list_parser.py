@@ -106,7 +106,7 @@ class URIListParser(BaseParser):
                 
             return self._create_ss_server(method, password, host, port, tag, query)
             
-        except (ValueError, AttributeError, IndexError) as e:
+        except (ValueError, AttributeError, IndexError):
             # Fallback to regex parsing if structured parsing fails
             return self._parse_ss_with_regex(uri, tag, query, line)
 
@@ -121,7 +121,13 @@ class URIListParser(BaseParser):
                 decoded = base64.urlsafe_b64decode(b64 + '=' * (-len(b64) % 4)).decode('utf-8')
             except (binascii.Error, UnicodeDecodeError):
                 decoded = b64  # fallback: not base64
-            return decoded, after
+            if '@' in decoded:
+                parts = decoded.split('@', 1)
+                return parts[0], parts[1]
+            else:
+                if debug_level > 0:
+                    logger.warning(f"ss:// no host in line: {line}")
+                return "", ""
         else:
             # Whole string is base64 or plain
             try:
@@ -130,14 +136,23 @@ class URIListParser(BaseParser):
                 decoded = uri  # fallback: not base64
             
             if '@' in decoded:
-                return decoded.split('@', 1)
+                parts = decoded.split('@', 1)
+                return parts[0], parts[1]
             else:
                 if debug_level > 0:
                     logger.warning(f"ss:// no host in line: {line}")
                 return "", ""
 
     def _parse_ss_credentials(self, method_pass: str, line: str) -> tuple[str, str]:
-        """Parse method and password from method:password string."""
+        """Parse method and password from method:password string.
+        
+        Args:
+            method_pass: String containing method:password.
+            line: Original line for error reporting.
+            
+        Returns:
+            Tuple of (method, password). Empty strings if parsing fails.
+        """
         debug_level = get_debug_level()
         
         if ':' not in method_pass:
@@ -145,11 +160,16 @@ class URIListParser(BaseParser):
                 logger.warning(f"ss:// parse failed (no colon in method:pass): {line}")
             return "", ""
         
-        return method_pass.split(':', 1)
+        parts = method_pass.split(':', 1)
+        return parts[0], parts[1]
 
     def _parse_ss_endpoint(self, host_port: str, line: str) -> tuple[str, int, str]:
         """Parse host and port from host:port string.
         
+        Args:
+            host_port: String containing host:port.
+            line: Original line for error reporting.
+            
         Returns:
             Tuple of (host, port, error_message). If parsing fails, 
             host/port will be empty/0 and error_message will describe the issue.
@@ -161,7 +181,8 @@ class URIListParser(BaseParser):
                 logger.warning(f"ss:// parse failed (no port specified): {line}")
             return "", 0, "no port specified"
         
-        host, port_str = host_port.split(':', 1)
+        parts = host_port.split(':', 1)
+        host, port_str = parts[0], parts[1]
         
         try:
             port = int(port_str)

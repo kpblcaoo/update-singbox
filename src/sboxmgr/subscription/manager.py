@@ -10,7 +10,7 @@ from .models import SubscriptionSource, PipelineContext, PipelineResult
 from .registry import get_plugin, load_entry_points
 from .fetchers import *  # noqa: F401, импортируем fetcher-плагины для регистрации
 
-from typing import Optional
+from typing import Optional, Any, Dict, Tuple, List, Literal, Protocol
 from sboxmgr.export.export_manager import ExportManager
 from .base_selector import DefaultSelector
 from .postprocessor_base import DedupPostProcessor, PostProcessorChain
@@ -20,7 +20,14 @@ from .middleware_base import MiddlewareChain
 
 import threading
 
-def detect_parser(raw: bytes, source_type: str) -> Optional[object]:
+class ParserProtocol(Protocol):
+    """Protocol for parser objects that can parse subscription data."""
+    
+    def parse(self, raw: bytes) -> List[Any]:
+        """Parse raw subscription data into server configurations."""
+        ...
+
+def detect_parser(raw: bytes, source_type: str) -> Optional[ParserProtocol]:
     """Auto-detect appropriate parser based on data content.
     
     Args:
@@ -96,7 +103,7 @@ class SubscriptionManager:
     """
     
     _cache_lock = threading.Lock()
-    _get_servers_cache = {}
+    _get_servers_cache: Dict[Tuple, Any] = {}
 
     def __init__(self, source: SubscriptionSource, detect_parser=None, postprocessor_chain=None, middleware_chain=None):
         """Initialize subscription manager with configuration.
@@ -420,7 +427,7 @@ class SubscriptionManager:
             
             return selected_servers, True
             
-        except Exception as e:
+        except Exception:
             # Post-processing errors are not critical - return original servers
             return servers, True
 

@@ -1,7 +1,7 @@
 """Event types and data structures for the event system."""
 
 from enum import Enum, IntEnum
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional, Union, Callable
 from datetime import datetime
 from dataclasses import dataclass
 
@@ -121,4 +121,4 @@ class EventData:
 
 # Type aliases for convenience
 EventPayload = Dict[str, Any]
-EventCallback = Union[callable, Any] 
+EventCallback = Union[Callable[..., Any], Any] 

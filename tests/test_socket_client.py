@@ -2,7 +2,7 @@
 
 import pytest
 import tempfile
-import os
+import socket
 from pathlib import Path
 from unittest.mock import Mock, patch
 

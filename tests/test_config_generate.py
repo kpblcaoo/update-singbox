@@ -1,11 +1,8 @@
 import pytest
 import json
-import os
-import tempfile
-from pathlib import Path
-from unittest.mock import patch, mock_open, MagicMock
+from unittest.mock import patch
 from sboxmgr.config.generate import generate_config, generate_temp_config
-from sboxmgr.validation.internal import validate_config_file
+from sboxmgr.config.validation import validate_config_file, ConfigValidationError
 
 
 class TestGenerateConfig:
@@ -30,8 +27,8 @@ class TestGenerateConfig:
     def sample_outbounds(self):
         """Sample outbounds for testing."""
         return [
-            {"type": "vless", "tag": "vless-1", "server": "test1.com"},
-            {"type": "vmess", "tag": "vmess-1", "server": "test2.com"}
+            {'server': 'test1.com', 'tag': 'vless-1', 'type': 'vless'},
+            {'server': 'test2.com', 'tag': 'vmess-1', 'type': 'vmess', 'uuid': '12345678-1234-1234-1234-123456789abc'}
         ]
     
     def test_generate_config_template_not_found(self, tmp_path):
@@ -125,14 +122,12 @@ class TestGenerateConfig:
         config_file = tmp_path / "config.json"
         backup_file = tmp_path / "backup.json"
         
-        with patch('sboxmgr.config.generate.error') as mock_error:
-            with pytest.raises(ValueError):  # Internal validation raises ValueError
-                generate_config(
-                    [], str(template_file), str(config_file), 
-                    str(backup_file), []
-                )
-            
-            mock_error.assert_called()
+        # Should raise ConfigValidationError for invalid config
+        with pytest.raises(ConfigValidationError):
+            generate_config(
+                [], str(template_file), str(config_file), 
+                str(backup_file), []
+            )
     
     def test_generate_config_internal_validation_success(self, tmp_path, sample_template, sample_outbounds):
         """Test that internal validation works correctly (no external dependencies)."""
@@ -218,7 +213,6 @@ class TestGenerateTempConfig:
     def test_generate_temp_config_success(self, tmp_path, sample_template):
         """Test successful temp config generation."""
         outbounds = [{"type": "vless", "tag": "vless-1"}]
-        excluded_ips = ["1.1.1.1"]
         
         # Use template_data directly instead of file path
         config_data = generate_temp_config(sample_template, outbounds, [])
@@ -255,10 +249,9 @@ class TestValidateConfigFile:
         config_file = tmp_path / "config.json"
         config_file.write_text(json.dumps(config, indent=2))
         
-        valid, output = validate_config_file(str(config_file))
-        
-        assert valid is True
-        assert "validation passed" in output.lower()
+        # Should not raise exception for valid config
+        validate_config_file(str(config_file))
+        # If we get here, validation passed
     
     def test_validate_config_file_invalid(self, tmp_path):
         """Test config validation failure with invalid config."""
@@ -268,29 +261,24 @@ class TestValidateConfigFile:
         config_file = tmp_path / "config.json"
         config_file.write_text(json.dumps(config, indent=2))
         
-        valid, output = validate_config_file(str(config_file))
-        
-        assert valid is False
-        assert "at least one outbound" in output.lower()
+        # Should raise ConfigValidationError for invalid config
+        with pytest.raises(ConfigValidationError):
+            validate_config_file(str(config_file))
     
     def test_validate_config_file_not_found(self, tmp_path):
         """Test config validation when file doesn't exist."""
         config_file = tmp_path / "nonexistent.json"
         
-        valid, output = validate_config_file(str(config_file))
-        
-        assert valid is False
-        assert "not found" in output.lower()
+        with pytest.raises(ConfigValidationError, match="not found"):
+            validate_config_file(str(config_file))
     
     def test_validate_config_file_invalid_json(self, tmp_path):
         """Test config validation with invalid JSON."""
         config_file = tmp_path / "config.json"
         config_file.write_text('{"invalid": json}')  # Invalid JSON
         
-        valid, output = validate_config_file(str(config_file))
-        
-        assert valid is False
-        assert "invalid json" in output.lower()
+        with pytest.raises(ConfigValidationError, match="Invalid TOML syntax"):
+            validate_config_file(str(config_file))
     
     def test_validate_config_file_complex_valid(self, tmp_path):
         """Test validation of complex but valid configuration."""
@@ -313,7 +301,6 @@ class TestValidateConfigFile:
         config_file = tmp_path / "config.json"
         config_file.write_text(json.dumps(config, indent=2))
         
-        valid, output = validate_config_file(str(config_file))
-        
-        assert valid is True
-        assert "validation passed" in output.lower() 
+        # Should not raise exception for valid config
+        validate_config_file(str(config_file))
+        # If we get here, validation passed 

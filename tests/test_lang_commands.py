@@ -1,8 +1,5 @@
 import pytest
-import os
-import tempfile
-from pathlib import Path
-from unittest.mock import patch, mock_open, MagicMock
+from unittest.mock import patch, MagicMock
 import typer
 from sboxmgr.cli.commands.lang import lang_cmd, LANG_NAMES
 

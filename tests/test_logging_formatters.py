@@ -6,7 +6,6 @@ Tests cover the UTC timestamp bug fix and other formatter functionality.
 import pytest
 import json
 import logging
-from datetime import datetime, timezone
 from unittest.mock import patch
 
 from sboxmgr.logging.formatters import (

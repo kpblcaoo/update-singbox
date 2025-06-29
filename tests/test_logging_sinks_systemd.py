@@ -3,11 +3,9 @@
 Tests cover the resource leak bug fix and error handling improvements.
 """
 
-import pytest
 import logging
 import subprocess
-from unittest.mock import Mock, patch, MagicMock
-from io import StringIO
+from unittest.mock import Mock, patch
 
 from sboxmgr.logging.sinks import _create_journald_handler
 from sboxmgr.config.models import LoggingConfig

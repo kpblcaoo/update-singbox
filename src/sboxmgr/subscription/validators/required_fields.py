@@ -10,7 +10,13 @@ from sboxmgr.subscription.models import PipelineContext
 
 @register_parsed_validator("required_fields")
 class RequiredFieldsValidator(BaseParsedValidator):
-    """Validates required fields for ParsedServer: type, address, port, and value acceptability. Returns errors and list of valid servers."""
+    """Validates required fields for ParsedServer: type, address, port, and value acceptability.
+    
+    This validator ensures that all parsed servers have the essential fields
+    required for configuration export. It checks for type, address, and port
+    fields and validates their values are within acceptable ranges.
+    """
+    
     def validate(self, servers: list, context: PipelineContext) -> ValidationResult:
         """Validate that servers have all required fields with valid values.
         
@@ -38,6 +44,5 @@ class RequiredFieldsValidator(BaseParsedValidator):
                 errors.append(err)
             else:
                 valid_servers.append(s)
-        result = ValidationResult(valid=bool(valid_servers), errors=errors)
-        result.valid_servers = valid_servers
-        return result 
+        
+        return ValidationResult(valid=bool(valid_servers), errors=errors, valid_servers=valid_servers) 

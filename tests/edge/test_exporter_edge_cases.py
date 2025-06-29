@@ -1,5 +1,4 @@
 import pytest
-import json
 from sboxmgr.subscription.exporters.singbox_exporter import singbox_export
 from sboxmgr.subscription.models import ParsedServer, InboundProfile, ClientProfile
 from sboxmgr.subscription.postprocessor_base import PostProcessorChain, DedupPostProcessor, BasePostProcessor

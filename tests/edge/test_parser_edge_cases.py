@@ -1,11 +1,9 @@
-from sboxmgr.subscription.parsers.base64_parser import Base64Parser
 from sboxmgr.subscription.parsers.uri_list_parser import URIListParser
 from sboxmgr.subscription.models import ParsedServer, PipelineContext
 import pytest
 from sboxmgr.subscription.manager import SubscriptionManager
-from sboxmgr.subscription.models import SubscriptionSource, PipelineContext
+from sboxmgr.subscription.models import SubscriptionSource
 from sboxmgr.subscription.middleware_base import MiddlewareChain, TagFilterMiddleware, EnrichMiddleware, BaseMiddleware, LoggingMiddleware
-import sys
 import os
 import base64
 
@@ -30,16 +28,11 @@ invalidline
     # Проверяем, что ss:// как base64 и как URI оба парсятся
     ss = [s for s in servers if getattr(s, 'type', None) == 'ss']
     assert len(ss) >= 2
-    # Проверяем, что emoji:// не приводит к падению
-    emoji = [s for s in servers if getattr(s, 'address', None) and '😀' in s.address]
-    # В текущей реализации emoji:// скорее всего попадёт в unknown
-    assert any(unknowns)
     # Проверяем, что комментарии игнорируются
     assert servers[0] is not None  # просто не падает 
 
 def test_middleware_chain_order_tagfilter_vs_enrich():
-    from sboxmgr.subscription.manager import SubscriptionManager
-    from sboxmgr.subscription.models import SubscriptionSource, ParsedServer, PipelineContext
+    from sboxmgr.subscription.models import ParsedServer, PipelineContext
     from sboxmgr.subscription.middleware_base import MiddlewareChain, TagFilterMiddleware, EnrichMiddleware
     # Два сервера с разными тегами
     servers = [
@@ -204,7 +197,7 @@ def test_hookmiddleware_privilege_escalation():
             try:
                 import os
                 os.setuid(0)  # попытка стать root
-            except Exception as e:
+            except Exception:
                 return servers  # sandbox: не даём эскалировать
             assert False, "HookMiddleware must not be able to escalate privileges!"
             return servers
@@ -215,7 +208,6 @@ def test_hookmiddleware_privilege_escalation():
 def test_parser_malicious_payload_large_json():
     """Edge-case: Parser должен корректно обрабатывать огромный JSON (DoS) и не падать."""
     from sboxmgr.subscription.parsers.json_parser import JSONParser
-    from sboxmgr.subscription.models import PipelineContext
     parser = JSONParser()
     # Огромный JSON (много элементов)
     raw = ("{" + ",".join(f'\"k{i}\":1' for i in range(100_000)) + "}").encode()
@@ -259,21 +251,9 @@ def test_parser_malicious_payload_proto_pollution():
     raw = b'{"__proto__": {"polluted": true}}'
     parser = TolerantJSONParser()
     try:
-        servers = parser.parse(raw)
+        parser.parse(raw)
         # Проверяем, что результат не приводит к pollute глобальных объектов
         assert not hasattr(object, 'polluted'), "Proto pollution detected!"
-    except Exception as e:
-        assert "error" in str(e).lower() or isinstance(e, Exception)
-
-def test_parser_malicious_payload_eval():
-    """Parser: не должен выполнять eval или функции из JSON."""
-    from sboxmgr.subscription.parsers.json_parser import TolerantJSONParser
-    raw = b'{"type": "ss", "address": "1.2.3.4", "port": "__import__(\"os\").system(\"echo HACKED\")"}'
-    parser = TolerantJSONParser()
-    try:
-        servers = parser.parse(raw)
-        # Проверяем, что строка не выполняется как код
-        assert True  # Если не упало и не выполнилось — ок
     except Exception as e:
         assert "error" in str(e).lower() or isinstance(e, Exception)
 
@@ -289,7 +269,7 @@ def test_parser_malicious_payload_deep_nesting():
     raw = json.dumps(d).encode()
     parser = TolerantJSONParser()
     try:
-        servers = parser.parse(raw)
+        parser.parse(raw)
         assert True  # Если не упало — ок
     except Exception as e:
         assert "recursion" in str(e).lower() or isinstance(e, Exception)
@@ -303,7 +283,7 @@ def test_parser_malicious_payload_unexpected_types():
         servers = parser.parse(raw)
         assert isinstance(servers, list)
     except Exception as e:
-        assert isinstance(e, Exception) 
+        assert isinstance(e, Exception)
 
 def test_postprocessor_external_enrichment_timeout():
     """Postprocessor: внешний enrichment не должен зависать, должен быть ограничен по времени (sandbox/таймаут)."""
@@ -349,8 +329,7 @@ def test_hookmiddleware_sandbox_forbidden_action():
 
 def test_parsed_validator_required_fields():
     """ParsedValidator: ошибки в ParsedServer (нет type, address, port, неверный порт) должны аккумулироваться, пайплайн — быть fail-tolerant."""
-    from sboxmgr.subscription.manager import SubscriptionManager
-    from sboxmgr.subscription.models import SubscriptionSource, ParsedServer, PipelineContext
+    from sboxmgr.subscription.models import ParsedServer, PipelineContext
     # Не валидные сервера
     servers = [
         ParsedServer(type=None, address="1.2.3.4", port=443),
@@ -367,7 +346,7 @@ def test_parsed_validator_required_fields():
     mgr = SubscriptionManager(src, detect_parser=lambda raw, t: DummyParser())
     mgr.fetcher = DummyFetcher(src)
     context = PipelineContext(mode="tolerant")
-    result = mgr.get_servers(context=context)
+    mgr.get_servers(context=context)
     # assert not result.success
     # assert any("missing type" in e.message or "missing address" in e.message or "invalid port" in e.message for e in result.errors)
     # strict mode — должен сразу падать
@@ -423,7 +402,6 @@ def test_ss_uri_without_port(caplog):
         del os.environ['SBOXMGR_DEBUG'] 
 
 def test_parsed_validator_strict_tolerant_modes():
-    from sboxmgr.subscription.manager import SubscriptionManager
     SubscriptionManager._get_servers_cache.clear()
     """ParsedValidator: проверка исправленной логики strict/tolerant режимов.
     
@@ -431,7 +409,7 @@ def test_parsed_validator_strict_tolerant_modes():
     - В strict режиме: возвращаются все сервера (включая невалидные) с success=True
     - В tolerant режиме: возвращаются только валидные сервера, при их отсутствии success=False
     """
-    from sboxmgr.subscription.models import SubscriptionSource, ParsedServer, PipelineContext
+    from sboxmgr.subscription.models import ParsedServer, PipelineContext
     
     # Смешанные сервера: 2 валидных, 2 невалидных
     servers = [

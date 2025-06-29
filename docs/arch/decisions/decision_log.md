@@ -16,6 +16,8 @@ _Часть ADR написана ретроспективно для фикса�
 | ADR-0010  | Logging Core Architecture                   | Accepted | 2024-12-19 | Multi-sink structured logging with trace ID propagation |
 | ADR-0011  | Event System Architecture                   | Accepted | 2024-12-19 | Lightweight EventBus with pydispatch for component decoupling |
 | ADR-0012  | Service Architecture & Dual-Path Support    | Accepted | 2025-01-27 | Three-tier architecture with dual-path support |
+| ADR-0015  | Agent-Installer Separation & Installation Strategy | Accepted | 2025-01-27 | Clear separation between agent (runtime) and installer (setup) responsibilities |
+| ADR-0016  | Pydantic as Single Source of Truth for Validation and Schema Generation | Accepted | 2025-01-27 | Standardized approach using Pydantic for validation and automatic schema generation |
 
 ## Summary
 - **Security**: ADR-0001 establishes CLI security foundation
@@ -27,4 +29,7 @@ _Часть ADR написана ретроспективно для фикса�
 - **Resilience**: ADR-0008 defines fail-tolerance and default value patterns
 - **Configuration**: ADR-0009 establishes Pydantic-based configuration system with service mode detection
 - **Logging**: ADR-0010 implements multi-sink structured logging with trace correlation
-- **Events**: ADR-0011 provides lightweight event system for component decoupling 
+- **Events**: ADR-0011 provides lightweight event system for component decoupling
+- **Services**: ADR-0012 defines three-tier service architecture with dual-path support
+- **Installation**: ADR-0015 separates agent runtime from installer setup responsibilities
+- **Validation**: ADR-0016 standardizes Pydantic as single source of truth for validation and schema generation 

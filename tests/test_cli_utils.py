@@ -1,9 +1,8 @@
-import pytest
 import json
 import os
 from pathlib import Path
-from unittest.mock import patch, mock_open, MagicMock
-from sboxmgr.cli.utils import is_ai_lang, detect_lang_source
+from unittest.mock import patch
+from sboxmgr.cli.utils import is_ai_lang
 
 
 class TestIsAiLang:

@@ -9,20 +9,25 @@ import typer
 import os
 import json
 import tempfile
-from pathlib import Path
 from typing import Optional
 
-from sboxmgr.core import Orchestrator, OrchestratorConfig
+from sboxmgr.core import Orchestrator
 from sboxmgr.i18n.loader import LanguageLoader
 from sboxmgr.i18n.t import t
-from sboxmgr.utils.env import get_template_file, get_config_file, get_backup_file
-
-lang = LanguageLoader(os.getenv('SBOXMGR_LANG', 'en'))
+from sboxmgr.utils.env import get_config_file, get_backup_file
 
 
-def _create_orchestrator(debug_level: int = 0) -> Orchestrator:
-    """Create orchestrator instance."""
-    return Orchestrator.create_default(debug_level=debug_level, fail_safe=False)
+def _create_orchestrator(debug_level: int = 0, fail_safe: bool = False) -> Orchestrator:
+    """Create orchestrator instance.
+    
+    Args:
+        debug_level: Debug verbosity level (0-2).
+        fail_safe: Whether to use fail-safe mode.
+        
+    Returns:
+        Orchestrator: Configured orchestrator instance.
+    """
+    return Orchestrator.create_default(debug_level=debug_level, fail_safe=fail_safe)
 
 
 def _setup_user_agent(user_agent: Optional[str], no_user_agent: bool) -> Optional[str]:
@@ -57,13 +62,36 @@ def run_orchestrated(
     no_user_agent: bool = typer.Option(False, "--no-user-agent", help="Disable User-Agent"),
     format: str = typer.Option("singbox", "--format", help="Export format"),
     skip_version_check: bool = typer.Option(True, "--skip-version-check", help="Skip version check"),
+    user_routes: str = typer.Option(None, "--user-routes", help="Comma-separated list of route tags to include"),
+    exclusions: str = typer.Option(None, "--exclusions", help="Comma-separated list of servers to exclude")
 ):
-    """Update configuration from subscription using Orchestrator."""
+    """Update configuration from subscription using Orchestrator.
+    
+    Args:
+        url: Subscription URL to fetch from.
+        debug: Debug verbosity level (0-2).
+        dry_run: Validate configuration without saving.
+        config_file: Output configuration file path.
+        backup_file: Backup file path.
+        user_agent: Custom User-Agent header.
+        no_user_agent: Disable User-Agent header.
+        format: Export format (singbox, clash, v2ray).
+        skip_version_check: Skip version compatibility check.
+        user_routes: Comma-separated route tags to include.
+        exclusions: Comma-separated servers to exclude.
+        
+    Raises:
+        typer.Exit: On validation failure or processing errors.
+    """
     from logsetup.setup import setup_logging
     setup_logging(debug_level=debug)
     
     orchestrator = _create_orchestrator(debug_level=debug)
     ua = _setup_user_agent(user_agent, no_user_agent)
+    
+    # Parse user_routes and exclusions
+    user_routes_list = [x.strip() for x in user_routes.split(",")] if user_routes else None
+    exclusions_list = [x.strip() for x in exclusions.split(",")] if exclusions else None
     
     try:
         # Export configuration through orchestrator
@@ -72,7 +100,9 @@ def run_orchestrated(
             source_type="url_base64",
             export_format=format,
             skip_version_check=skip_version_check,
-            user_agent=ua
+            user_agent=ua,
+            user_routes=user_routes_list,
+            exclusions=exclusions_list
         )
         
         if not export_result["success"]:
@@ -82,20 +112,20 @@ def run_orchestrated(
         config_json = json.dumps(export_result["config"], indent=2, ensure_ascii=False)
         
     except Exception as e:
-        typer.echo(f"{lang.get('error.subscription_failed')}: {e}", err=True)
+        typer.echo(f"{t('error.subscription_failed')}: {e}", err=True)
         raise typer.Exit(1)
     
     # Handle dry run
     if dry_run:
-        typer.echo(lang.get("cli.dry_run_mode"))
+        typer.echo(t("cli.dry_run_mode"))
         valid, output = _validate_config_with_temp_file(config_json)
         
         if valid:
-            typer.echo(lang.get("cli.dry_run_valid"))
+            typer.echo(t("cli.dry_run_valid"))
         else:
-            typer.echo(f"{lang.get('cli.config_invalid')}\n{output}", err=True)
+            typer.echo(f"{t('cli.config_invalid')}\n{output}", err=True)
         
-        typer.echo(lang.get("cli.temp_file_deleted"))
+        typer.echo(t("cli.temp_file_deleted"))
         raise typer.Exit(0 if valid else 1)
     
     # Write configuration files
@@ -115,15 +145,15 @@ def run_orchestrated(
             from sboxmgr.service.manage import manage_service
             manage_service()
             if debug >= 1:
-                typer.echo(lang.get("cli.service_restart_completed"))
+                typer.echo(t("cli.service_restart_completed"))
         except Exception as e:
             typer.echo(f"[WARN] Failed to restart service: {e}", err=True)
             
     except Exception as e:
-        typer.echo(f"{lang.get('cli.error_config_update')}: {e}", err=True)
+        typer.echo(f"{t('cli.error_config_update')}: {e}", err=True)
         raise typer.Exit(1)
     
-    typer.echo(lang.get("cli.update_completed"))
+    typer.echo(t("cli.update_completed"))
 
 
 def exclusions_orchestrated(
@@ -317,5 +347,5 @@ def list_servers_orchestrated(
                     typer.echo(f"{i:3d}. [{protocol:8s}] {server_name:30s} {server_addr}:{server_port}")
         
     except Exception as e:
-        typer.echo(f"{lang.get('error.subscription_failed')}: {e}", err=True)
+        typer.echo(f"{t('error.subscription_failed')}: {e}", err=True)
         raise typer.Exit(1) 

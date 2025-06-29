@@ -1,6 +1,6 @@
 import pytest
 import json
-from unittest.mock import patch, MagicMock, Mock
+from unittest.mock import patch, Mock
 import requests
 from sboxmgr.config.fetch import fetch_json, select_config
 

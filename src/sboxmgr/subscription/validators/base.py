@@ -19,17 +19,20 @@ class ValidationResult:
     Attributes:
         valid: Whether the validation passed.
         errors: List of error messages if validation failed.
+        valid_servers: List of valid servers (for parsed validators).
     """
     
-    def __init__(self, valid: bool, errors: List[str] = None):
+    def __init__(self, valid: bool, errors: List[str] = None, valid_servers: List = None):
         """Initialize validation result.
         
         Args:
             valid: Whether the validation passed.
             errors: Optional list of error messages.
+            valid_servers: Optional list of valid servers.
         """
         self.valid = valid
         self.errors = errors or []
+        self.valid_servers = valid_servers or []
 
 RAW_VALIDATOR_REGISTRY = {}
 

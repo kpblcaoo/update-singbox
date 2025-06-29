@@ -8,8 +8,8 @@ from sboxmgr.subscription.fetchers.url_fetcher import URLFetcher
 
 def test_base64_subscription(tmp_path):
     example_path = os.path.join(os.path.dirname(__file__), '../src/sboxmgr/examples/example_base64.txt')
-    with open(example_path, 'rb') as f:
-        raw = f.read()
+    # Проверяем что файл существует
+    assert os.path.exists(example_path)
     # Эмулируем fetcher, подставляя raw напрямую (или через временный fetcher)
     source = SubscriptionSource(url='file://' + example_path, source_type='url_base64')
     mgr = SubscriptionManager(source)
@@ -488,7 +488,6 @@ def test_subscription_manager_caching(monkeypatch):
     assert calls['count'] == 3
 
 def test_fetcher_caching(monkeypatch):
-    from sboxmgr.subscription.fetchers.url_fetcher import URLFetcher
     from sboxmgr.subscription.models import SubscriptionSource
     calls = {}
     class DummyRequests:

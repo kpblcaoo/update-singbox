@@ -2,7 +2,7 @@
 Тесты для проверки что версия sing-box проверяется только для singbox формата.
 """
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 from sboxmgr.export.export_manager import ExportManager
 from sboxmgr.subscription.models import ParsedServer
 
@@ -22,7 +22,7 @@ class TestFormatVersionCheck:
             servers = [ParsedServer(type="vmess", address="test.com", port=443)]
             
             # Вызываем экспорт - версия должна проверяться
-            config = mgr.export(servers, skip_version_check=False)
+            mgr.export(servers, skip_version_check=False)
             
             # Проверяем что версия была запрошена
             mock_check.assert_called_once()
@@ -35,15 +35,14 @@ class TestFormatVersionCheck:
     def test_clash_format_skips_version_check(self):
         """Для clash формата версия НЕ должна проверяться."""
         with patch('sboxmgr.utils.version.get_singbox_version') as mock_get_version, \
-             patch('sboxmgr.utils.version.check_version_compatibility') as mock_check, \
-             patch('typer.echo') as mock_echo:
+             patch('sboxmgr.utils.version.check_version_compatibility') as mock_check:
             
             mgr = ExportManager(export_format="clash")
             servers = [ParsedServer(type="vmess", address="test.com", port=443)]
             
             # Вызываем экспорт - версия НЕ должна проверяться
             try:
-                config = mgr.export(servers, skip_version_check=False)
+                mgr.export(servers, skip_version_check=False)
             except Exception:
                 pass  # Ожидаем ошибку т.к. clash экспортер не реализован
             
@@ -60,7 +59,7 @@ class TestFormatVersionCheck:
             servers = [ParsedServer(type="vmess", address="test.com", port=443)]
             
             # Вызываем экспорт с пропуском проверки версии
-            config = mgr.export(servers, skip_version_check=True)
+            mgr.export(servers, skip_version_check=True)
             
             # Проверяем что версия НЕ была запрошена
             mock_get_version.assert_not_called()

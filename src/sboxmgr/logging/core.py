@@ -6,13 +6,12 @@ structured logging, and trace ID propagation.
 
 import logging
 import logging.config
-import sys
-from typing import Dict, List, Optional, Union
+from typing import Dict, Optional
 
 from ..config.models import LoggingConfig
 from .sinks import LogSink, create_handler, detect_available_sinks
-from .formatters import create_formatter, get_default_formatter
-from .trace import get_trace_id, set_trace_id, with_trace_id
+from .formatters import create_formatter
+from .trace import get_trace_id
 
 
 class LoggingCore:
@@ -78,10 +77,12 @@ class LoggingCore:
         logger = logging.getLogger(name)
         
         # Add structured logging adapter if not already present
-        if not hasattr(logger, '_structured_adapter'):
-            logger._structured_adapter = StructuredLoggerAdapter(logger)
+        structured_adapter = getattr(logger, '_structured_adapter', None)
+        if structured_adapter is None:
+            structured_adapter = StructuredLoggerAdapter(logger)
+            setattr(logger, '_structured_adapter', structured_adapter)
         
-        return logger._structured_adapter
+        return structured_adapter
     
     def reconfigure(self, new_config: LoggingConfig) -> None:
         """Reconfigure logging with new settings.

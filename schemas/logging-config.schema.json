@@ -1,0 +1,83 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "LoggingConfig",
+  "description": "Logging configuration with multi-sink support.\n\nImplements LOG-01, LOG-02, LOG-03 from ADR-0010.\nSupports hierarchical log levels and automatic sink detection.",
+  "generator": "sboxmgr-schema-generator",
+  "version": "1.0.0",
+  "additionalProperties": false,
+  "properties": {
+    "level": {
+      "default": "INFO",
+      "description": "Global logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)",
+      "title": "Level",
+      "type": "string"
+    },
+    "format": {
+      "default": "text",
+      "description": "Log output format (text for CLI, json for service)",
+      "enum": [
+        "text",
+        "json"
+      ],
+      "title": "Format",
+      "type": "string"
+    },
+    "sinks": {
+      "default": [
+        "auto"
+      ],
+      "description": "Logging sinks (auto, stdout, journald, syslog, file)",
+      "items": {
+        "type": "string"
+      },
+      "title": "Sinks",
+      "type": "array"
+    },
+    "sink_levels": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "description": "Per-sink log level overrides",
+      "title": "Sink Levels",
+      "type": "object"
+    },
+    "file_path": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Log file path (when file sink is used)",
+      "title": "File Path"
+    },
+    "max_file_size": {
+      "default": 10000000,
+      "description": "Maximum log file size in bytes",
+      "title": "Max File Size",
+      "type": "integer"
+    },
+    "backup_count": {
+      "default": 5,
+      "description": "Number of backup log files to keep",
+      "title": "Backup Count",
+      "type": "integer"
+    },
+    "enable_trace_id": {
+      "default": true,
+      "description": "Enable trace ID generation and propagation",
+      "title": "Enable Trace Id",
+      "type": "boolean"
+    },
+    "structured_metadata": {
+      "default": true,
+      "description": "Include structured metadata in log entries",
+      "title": "Structured Metadata",
+      "type": "boolean"
+    }
+  },
+  "type": "object"
+}

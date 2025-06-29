@@ -4,12 +4,10 @@ import pytest
 import json
 import logging
 from pathlib import Path
-from unittest.mock import Mock, patch
-from datetime import datetime, timezone
+from unittest.mock import Mock
 import tempfile
 
-from sboxmgr.core.exclusions import ExclusionManager, ExclusionEntry, ExclusionList
-from sboxmgr.core.exclusions.manager import ExclusionLoadError
+from sboxmgr.core.exclusions import ExclusionManager
 
 
 class TestVersioning:
@@ -381,7 +379,6 @@ class TestExclusionManagerEnhanced:
     def test_versioning_new_file(self, manager):
         """Test versioning for new exclusion file."""
         manager.add("test-id", "Test Server", "Testing")
-        exclusions = manager.list_all()
         
         # Should have version 1 and last_modified
         assert hasattr(manager._exclusions, 'version')
@@ -580,7 +577,7 @@ class TestExclusionManagerEnhanced:
         assert len(servers_info) == 3
         assert all(len(info) == 3 for info in servers_info)  # (index, server, is_excluded)
         assert servers_info[0][0] == 0  # First server has index 0
-        assert servers_info[0][2] == False  # Not excluded initially
+        assert not servers_info[0][2]  # Not excluded initially
 
     def test_list_servers_with_exclusions(self, manager, sample_json_data, supported_protocols):
         """Test listing servers showing exclusion status."""
@@ -595,7 +592,7 @@ class TestExclusionManagerEnhanced:
         servers_info = manager.list_servers()
         
         # First server should be marked as excluded
-        assert servers_info[0][2] == True  # is_excluded
+        assert servers_info[0][2]  # is_excluded
 
     def test_format_server_info(self, manager):
         """Test server info formatting."""

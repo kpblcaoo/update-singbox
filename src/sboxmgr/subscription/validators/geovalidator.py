@@ -5,24 +5,30 @@ subscription servers. It validates country codes, region information,
 geographic coordinates, and ensures geographic metadata consistency
 for location-based server filtering and routing.
 """
-from ..validators.base import BaseValidator
+from typing import Any
+from ..validators.base import BaseValidator, ValidationResult
+from sboxmgr.subscription.models import PipelineContext
 
 
 class GeoValidator(BaseValidator):
-    """GeoValidator validates subscription data.
-
-    Example:
-        validator = GeoValidator()
-        result = validator.validate(raw)
+    """Validates geographic data in subscription servers.
+    
+    This validator checks geographic metadata such as country codes,
+    region information, and coordinates for consistency and validity.
     """
-    def validate(self, raw: bytes):
-        """Validate subscription data.
-
+    
+    def validate(self, raw: bytes, context: PipelineContext = None) -> Any:
+        """Validate geographic data in subscription.
+        
         Args:
-            raw (bytes): Raw data.
-
+            raw: Raw subscription data to validate.
+            context: Optional pipeline execution context.
+            
         Returns:
-            ValidationResult: Result.
+            ValidationResult: Validation result with success/failure status.
+            
+        Raises:
+            NotImplementedError: This validator is not yet implemented.
         """
-        raise NotImplementedError()
+        raise NotImplementedError("GeoValidator is not yet implemented")
 

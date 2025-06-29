@@ -1,7 +1,6 @@
-"""
-Tests for sing-box version checking and compatibility functionality.
-"""
-import pytest
+"""Tests for version compatibility utilities."""
+
+import subprocess
 from unittest.mock import patch, MagicMock
 from sboxmgr.utils.version import (
     get_singbox_version,
@@ -200,5 +199,4 @@ class TestVersionIntegration:
             assert "1.10.2" in warning
 
 
-# Fix import for subprocess
-import subprocess 
+# Fix import for subprocess 

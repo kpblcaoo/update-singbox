@@ -7,7 +7,7 @@ compatibility across different sing-box versions.
 """
 import json
 import logging
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Callable
 from ..models import ParsedServer, ClientProfile
 from ..base_exporter import BaseExporter
 from ..registry import register
@@ -57,11 +57,11 @@ def generate_inbounds(profile: ClientProfile) -> list:
     return inbounds
 
 
-def _get_protocol_dispatcher() -> Dict[str, callable]:
+def _get_protocol_dispatcher() -> Dict[str, Callable]:
     """Возвращает словарь диспетчеров для специальных протоколов.
     
     Returns:
-        Dict[str, callable]: Маппинг протокол -> функция экспорта.
+        Dict[str, Callable]: Маппинг протокол -> функция экспорта.
     """
     return {
         "wireguard": _export_wireguard,
@@ -167,7 +167,7 @@ def _process_tls_config(outbound: Dict[str, Any], meta: Dict[str, Any], protocol
         meta (Dict[str, Any]): Метаданные сервера для модификации.
         protocol_type (str): Тип протокола.
     """
-    tls = {}
+    tls: Dict[str, Any] = {}
     
     # Базовая TLS конфигурация
     if meta.get("tls") or meta.get("security") == "tls":
@@ -182,18 +182,26 @@ def _process_tls_config(outbound: Dict[str, Any], meta: Dict[str, Any], protocol
     # Reality конфигурация
     if meta.get("reality-opts"):
         reality = kebab_to_snake(meta.pop("reality-opts"))
-        tls.setdefault("reality", {}).update(reality)
+        if "reality" not in tls:
+            tls["reality"] = {}
+        tls["reality"].update(reality)
     
     if meta.get("pbk"):
-        tls.setdefault("reality", {})["public_key"] = meta.pop("pbk")
+        if "reality" not in tls:
+            tls["reality"] = {}
+        tls["reality"]["public_key"] = meta.pop("pbk")
     
     if meta.get("short_id"):
-        tls.setdefault("reality", {})["short_id"] = meta.pop("short_id")
+        if "reality" not in tls:
+            tls["reality"] = {}
+        tls["reality"]["short_id"] = meta.pop("short_id")
     
     # uTLS конфигурация
     utls_fp = meta.pop("client-fingerprint", None) or meta.pop("fp", None)
     if utls_fp:
-        tls.setdefault("utls", {})["fingerprint"] = utls_fp
+        if "utls" not in tls:
+            tls["utls"] = {}
+        tls["utls"]["fingerprint"] = utls_fp
         tls["utls"]["enabled"] = True
     
     # ALPN
@@ -312,17 +320,13 @@ def _add_special_outbounds(outbounds: List[Dict[str, Any]], use_legacy: bool) ->
         outbounds (List[Dict[str, Any]]): Список outbounds для модификации.
         use_legacy (bool): Использовать ли legacy режим.
     """
-    tags = {o["tag"] for o in outbounds}
-    
+    tags = {o.get("tag") for o in outbounds}
     if "direct" not in tags:
         outbounds.append({"type": "direct", "tag": "direct"})
-    
-    # Добавляем legacy special outbounds для совместимости с sing-box < 1.11.0
-    if use_legacy:
-        if "block" not in tags:
-            outbounds.append({"type": "block", "tag": "block"})
-        if "dns-out" not in tags:
-            outbounds.append({"type": "dns", "tag": "dns-out"})
+    if "block" not in tags:
+        outbounds.append({"type": "block", "tag": "block"})
+    if "dns-out" not in tags:
+        outbounds.append({"type": "dns", "tag": "dns-out"})
 
 
 def singbox_export(
@@ -404,10 +408,13 @@ def _export_wireguard(s: ParsedServer) -> dict:
     }
     if getattr(s, "pre_shared_key", None):
         out["pre_shared_key"] = s.pre_shared_key
-    if getattr(s, "mtu", None) is not None:
-        out["mtu"] = s.mtu
-    if getattr(s, "keepalive", None) is not None:
-        out["keepalive"] = s.keepalive
+    
+    # Безопасная проверка meta на None
+    meta = getattr(s, 'meta', {}) or {}
+    if meta.get("mtu") is not None:
+        out["mtu"] = meta["mtu"]
+    if meta.get("keepalive") is not None:
+        out["keepalive"] = meta["keepalive"]
     if s.tag:
         out["tag"] = s.tag
     return out
@@ -434,8 +441,11 @@ def _export_tuic(s: ParsedServer) -> dict:
         out["congestion_control"] = s.congestion_control
     if not s.alpn:
         out["alpn"] = s.alpn
-    if getattr(s, "udp_relay_mode", None):
-        out["udp_relay_mode"] = s.udp_relay_mode
+    
+    # Безопасная проверка meta на None
+    meta = getattr(s, 'meta', {}) or {}
+    if meta.get("udp_relay_mode") is not None:
+        out["udp_relay_mode"] = meta["udp_relay_mode"]
     if s.tls:
         out["tls"] = s.tls
     if s.tag:

@@ -1,5 +1,4 @@
 import os
-import pytest
 from typer.testing import CliRunner
 from sboxmgr.cli.main import app
 
@@ -30,7 +29,7 @@ def test_list_servers_excluded(tmp_path, monkeypatch):
     monkeypatch.setenv("SBOXMGR_LOG_FILE", str(tmp_path / "log.txt"))
     
     # Exclude index 0 (the only server we have in our mock data)
-    exclusion_result = runner.invoke(app, ["exclusions", "-u", os.getenv("TEST_URL", "https://example.com/sub-link"), "--add", "0"])
+    runner.invoke(app, ["exclusions", "-u", os.getenv("TEST_URL", "https://example.com/sub-link"), "--add", "0"])
     result = runner.invoke(app, ["list-servers", "-u", os.getenv("TEST_URL", "https://example.com/sub-link"), "-d", "2"])
     
     # Note: This test demonstrates the HTTP mocking pattern but may need further

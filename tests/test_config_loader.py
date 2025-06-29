@@ -4,13 +4,10 @@ Tests cover all the bug fixes implemented in the config loader module.
 """
 
 import pytest
-import tempfile
-import os
 import json
 import toml
 import yaml
 from pathlib import Path
-from unittest.mock import patch, mock_open
 from pydantic import ValidationError
 
 from sboxmgr.config.loader import (
@@ -21,7 +18,7 @@ from sboxmgr.config.loader import (
     create_default_config_file,
     merge_cli_args_to_config
 )
-from sboxmgr.config.models import AppConfig, LoggingConfig
+from sboxmgr.config.models import AppConfig
 
 
 class TestLoadConfig:

@@ -5,7 +5,6 @@ configurations into Clash-compatible YAML format. It handles Clash-specific
 configuration structure, proxy groups, and routing rules for seamless
 integration with Clash clients.
 """
-from ..registry import register
 from ..base_exporter import BaseExporter
 class ClashExporter(BaseExporter):
     """ClashExporter exports parsed servers to config.

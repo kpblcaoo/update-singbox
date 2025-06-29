@@ -11,7 +11,6 @@ from sboxmgr.logging.trace import (
     generate_trace_id,
     clear_trace_id,
     copy_trace_context,
-    trace_id_var,
 )
 
 

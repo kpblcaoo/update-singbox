@@ -1,12 +1,10 @@
 """Tests for the event system."""
 
-import pytest
 from datetime import datetime
-from unittest.mock import Mock
 
 from src.sboxmgr.events import (
-    EventManager, Event, EventHandler, EventType, EventPriority, EventData,
-    event_handler, TypeFilter, get_event_manager, emit_event
+    EventManager, EventHandler, EventType, EventPriority, EventData,
+    TypeFilter, get_event_manager, emit_event
 )
 
 

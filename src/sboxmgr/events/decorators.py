@@ -45,7 +45,7 @@ def event_handler(*event_types: EventType, source: Optional[str] = None,
         if auto_register:
             get_event_manager().register_handler(handler)
         
-        func._event_handler = handler
+        setattr(func, '_event_handler', handler)
         
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
@@ -70,7 +70,7 @@ def async_event_handler(*event_types: EventType, source: Optional[str] = None,
         if auto_register:
             get_event_manager().register_handler(handler)
         
-        func._event_handler = handler
+        setattr(func, '_event_handler', handler)
         
         @functools.wraps(func)
         async def wrapper(*args, **kwargs):

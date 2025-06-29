@@ -1,6 +1,5 @@
 import pytest
-import logging
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 from sboxmgr.server.selection import list_servers
 
 
@@ -30,8 +29,7 @@ class TestListServers:
         
         with patch('sboxmgr.server.selection.load_exclusions', return_value={"exclusions": []}), \
              patch('sboxmgr.server.selection.generate_server_id') as mock_gen_id, \
-             patch('typer.echo') as mock_echo, \
-             patch('logging.info') as mock_log:
+             patch('typer.echo') as mock_echo:
             
             mock_gen_id.side_effect = ["id1", "id2"]
             
@@ -166,7 +164,6 @@ class TestListServers:
         
         with patch('sboxmgr.server.selection.load_exclusions', return_value={"exclusions": []}), \
              patch('sboxmgr.server.selection.generate_server_id', return_value="id1"), \
-             patch('typer.echo') as mock_echo, \
              patch('logging.info') as mock_log:
             
             list_servers(json_data, supported_protocols, debug_level=1)
@@ -193,7 +190,6 @@ class TestListServers:
         
         with patch('sboxmgr.server.selection.load_exclusions', return_value={"exclusions": []}), \
              patch('sboxmgr.server.selection.generate_server_id', return_value="id1"), \
-             patch('typer.echo') as mock_echo, \
              patch('logging.info') as mock_log:
             
             list_servers(json_data, supported_protocols, debug_level=-1)
@@ -261,8 +257,7 @@ class TestListServers:
         supported_protocols = ["shadowsocks"]
         
         with patch('sboxmgr.server.selection.load_exclusions', return_value={"exclusions": []}), \
-             patch('sboxmgr.server.selection.generate_server_id', return_value="id1"), \
-             patch('typer.echo') as mock_echo:
+             patch('sboxmgr.server.selection.generate_server_id', return_value="id1"):
             
             # This should fail because list_servers expects dict with "outbounds" key
             with pytest.raises(AttributeError):
@@ -481,4 +476,15 @@ class TestListServersIntegration:
             # Unsupported protocol should not appear
             echo_calls = [call[0][0] for call in mock_echo.call_args_list]
             assert not any("Unsupported-Server" in call for call in echo_calls)
-            assert not any("http" in call for call in echo_calls) 
+            assert not any("http" in call for call in echo_calls)
+
+        with patch('sboxmgr.server.selection.load_exclusions', return_value={"exclusions": []}), \
+             patch('sboxmgr.server.selection.generate_server_id', return_value="id1"), \
+             patch('logging.info') as mock_log:
+            
+            # Test with empty exclusions
+            list_servers(json_data, supported_protocols)
+            
+            # Should have called generate_server_id for each server
+            assert mock_gen_id.call_count == 2
+            mock_log.assert_called() 

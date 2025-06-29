@@ -8,9 +8,8 @@ Tests:
 
 import pytest
 import socket
-import tempfile
 import os
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 from sboxmgr.agent.ipc.socket_client import SocketClient
 
 

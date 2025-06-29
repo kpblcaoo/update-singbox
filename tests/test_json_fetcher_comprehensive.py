@@ -2,8 +2,7 @@
 
 import pytest
 import requests
-import threading
-from unittest.mock import patch, MagicMock, mock_open, Mock
+from unittest.mock import patch, mock_open, Mock
 from sboxmgr.subscription.fetchers.json_fetcher import JSONFetcher
 from sboxmgr.subscription.models import SubscriptionSource
 

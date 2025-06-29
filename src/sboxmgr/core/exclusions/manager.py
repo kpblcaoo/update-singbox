@@ -7,7 +7,7 @@ from typing import List, Dict, Optional, Any, Tuple, Union
 import threading
 import fnmatch
 
-from .interface import ExclusionManagerInterface
+from ..interfaces import ExclusionManagerInterface
 from .models import ExclusionEntry, ExclusionList
 from sboxmgr.utils.file import atomic_write_json, file_exists, read_json
 from sboxmgr.utils.env import get_exclusion_file
@@ -52,14 +52,16 @@ class ExclusionManager(ExclusionManagerInterface):
     
     @classmethod
     def default(cls) -> 'ExclusionManager':
-        """Get default singleton instance for DI.
-        
-        Returns:
-            Default ExclusionManager instance
-        """
+        """Get or create the default ExclusionManager, respecting env changes."""
+        from sboxmgr.utils.env import get_exclusion_file
+        file_path = get_exclusion_file()
         with cls._default_lock:
-            if cls._default_instance is None:
-                cls._default_instance = cls()
+            # Если singleton не создан или путь изменился — пересоздать
+            if (
+                cls._default_instance is None or
+                str(cls._default_instance.file_path) != str(file_path)
+            ):
+                cls._default_instance = cls(file_path=file_path)
             return cls._default_instance
     
     def _load(self) -> ExclusionList:
@@ -74,9 +76,15 @@ class ExclusionManager(ExclusionManagerInterface):
                     self._exclusions = ExclusionList.from_dict(data)
                     self.logger.debug(f"Loaded {len(self._exclusions.exclusions)} exclusions from {self.file_path}")
                 except (json.JSONDecodeError, KeyError, ValueError) as e:
-                    # Fail-safe: corrupted file -> empty list + warning
-                    self.logger.warning(f"Exclusion file {self.file_path} is corrupted: {e}. Falling back to empty list.")
+                    # Fail-safe: corrupted file -> empty list + restore file
+                    self.logger.warning(f"Exclusion file {self.file_path} is corrupted: {e}. Restoring to empty state.")
                     self._exclusions = ExclusionList()
+                    # Restore the file with empty exclusions
+                    try:
+                        self._save()
+                        self.logger.info(f"Restored corrupted exclusion file {self.file_path} to empty state")
+                    except Exception as save_error:
+                        self.logger.error(f"Failed to restore exclusion file {self.file_path}: {save_error}")
                     # Don't raise exception on init - fail-safe mode
                 except Exception as e:
                     # Unexpected error -> fail-safe
@@ -296,6 +304,24 @@ class ExclusionManager(ExclusionManagerInterface):
         return f"[{index:2d}] {tag} ({server_type}:{port}) - {status}"
 
     # NEW: Enhanced add methods with wildcard and index support
+    def _ensure_file_valid(self) -> None:
+        """Ensure exclusion file is valid, restore if corrupted."""
+        if not file_exists(str(self.file_path)):
+            return
+        
+        try:
+            # Try to read the file to check if it's valid
+            read_json(str(self.file_path))
+        except (json.JSONDecodeError, KeyError, ValueError) as e:
+            # File is corrupted, restore it
+            self.logger.warning(f"Exclusion file {self.file_path} is corrupted: {e}. Restoring to empty state.")
+            self._exclusions = ExclusionList()
+            try:
+                self._save()
+                self.logger.info(f"Restored corrupted exclusion file {self.file_path} to empty state")
+            except Exception as save_error:
+                self.logger.error(f"Failed to restore exclusion file {self.file_path}: {save_error}")
+
     def add_by_index(self, json_data: Union[Dict[str, Any], List[Dict[str, Any]]], indices: List[int], 
                     supported_protocols: List[str], reason: str = "Added by index") -> List[str]:
         """Add exclusions by server indices.
@@ -311,6 +337,8 @@ class ExclusionManager(ExclusionManagerInterface):
         if not self._servers_cache or json_data != self._servers_cache.get('servers'):
             self.set_servers_cache(json_data, supported_protocols)
         
+        # Ensure file is valid before loading
+        self._ensure_file_valid()
         self._load()
         
         added_ids = []
@@ -349,6 +377,8 @@ class ExclusionManager(ExclusionManagerInterface):
         if not self._servers_cache or json_data != self._servers_cache.get('servers'):
             self.set_servers_cache(json_data, supported_protocols)
         
+        # Ensure file is valid before loading
+        self._ensure_file_valid()
         self._load()
         
         added_ids = []

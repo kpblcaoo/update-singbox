@@ -13,19 +13,28 @@ from pathlib import Path
 from .protocol import (
     ValidationRequest, InstallRequest, CheckRequest,
     ValidationResponse, InstallResponse, CheckResponse,
-    ClientType, AgentCommand, AnyRequest, AnyResponse
+    ClientType
 )
+from .event_sender import send_event, ping_agent
 from ..events import emit_event, EventType, EventPriority
 
 
 def _get_logger():
-    """Get logger lazily to avoid initialization issues."""
+    """Get logger lazily to avoid initialization issues.
+    
+    Returns:
+        Logger instance for this module.
+    """
     from ..logging import get_logger
     return get_logger(__name__)
 
 
 def _get_trace_id():
-    """Get trace ID lazily to avoid initialization issues."""
+    """Get trace ID lazily to avoid initialization issues.
+    
+    Returns:
+        Current trace ID for request correlation.
+    """
     from ..logging.trace import get_trace_id
     return get_trace_id()
 
@@ -67,13 +76,15 @@ class AgentBridge:
         """
         self.agent_path = agent_path or self._find_agent()
         self.timeout = timeout
-        self._available = None  # Cache availability check
+        self._available: Optional[bool] = None  # Cache availability check
     
     def _find_agent(self) -> Optional[str]:
         """Find sboxagent executable in PATH.
         
+        Searches for common sboxagent executable names in system PATH.
+        
         Returns:
-            Path to sboxagent executable or None if not found
+            Path to sboxagent executable or None if not found.
         """
         return shutil.which("sbox-agent") or shutil.which("sboxagent")
     
@@ -87,11 +98,20 @@ class AgentBridge:
             return self._available
         
         if not self.agent_path:
+            # Try socket connection as fallback
+            if ping_agent():
+                self._available = True
+                return True
             self._available = False
             return False
         
         try:
-            # Quick version check to verify agent is working
+            # First try socket connection (faster)
+            if ping_agent():
+                self._available = True
+                return True
+            
+            # Fallback to subprocess call
             request = {"command": "version", "version": "1.0"}
             response = self._call_agent(request)
             self._available = response.get("success", False)
@@ -138,6 +158,13 @@ class AgentBridge:
             priority=EventPriority.NORMAL
         )
         
+        # Send event to agent via socket
+        send_event("validation_started", {
+            "config_path": str(config_path),
+            "client_type": client_type.value if client_type else None,
+            "strict": strict
+        }, source="sboxmgr.bridge")
+        
         request = ValidationRequest(
             config_path=str(config_path),
             client_type=client_type,
@@ -161,6 +188,14 @@ class AgentBridge:
                 source="agent.bridge",
                 priority=EventPriority.NORMAL
             )
+            
+            # Send completion event to agent via socket
+            send_event("validation_completed", {
+                "success": response.success,
+                "errors": response.errors,
+                "client_detected": response.client_detected.value if response.client_detected else None,
+                "client_version": response.client_version
+            }, source="sboxmgr.bridge")
             
             return response
             

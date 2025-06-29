@@ -5,8 +5,7 @@ This file tests the specific bugs found in follow-up review.
 
 import pytest
 import logging
-import subprocess
-from unittest.mock import patch, Mock, MagicMock
+from unittest.mock import patch, Mock
 from pydantic import ValidationError
 
 from sboxmgr.config.models import AppConfig, LoggingConfig
@@ -98,7 +97,7 @@ class TestBugFixBroadExceptionHandling:
                 mock_stdout.return_value = Mock()
                 
                 # Should catch OSError and fallback to stdout
-                handler = create_handler(LogSink.JOURNALD, config)
+                create_handler(LogSink.JOURNALD, config)
                 
                 # Should have attempted journald first, then fallen back
                 mock_journald.assert_called_once()

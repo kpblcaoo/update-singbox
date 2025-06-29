@@ -1,7 +1,6 @@
 import os
 import tempfile
 import json
-import pytest
 from sboxmgr.i18n.loader import LanguageLoader
 
 

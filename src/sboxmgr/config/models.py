@@ -9,7 +9,7 @@ Implements ADR-0009 Configuration System Architecture with:
 
 import os
 from pathlib import Path
-from typing import Dict, List, Literal, Optional, Union
+from typing import Dict, List, Literal, Optional
 from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings
 

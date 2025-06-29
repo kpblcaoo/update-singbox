@@ -1,24 +1,16 @@
 """Integration tests for the complete logging system."""
 
-import pytest
 import logging
 import json
-import sys
 from io import StringIO
-from unittest.mock import patch, MagicMock
 
 from sboxmgr.config.models import LoggingConfig
 from sboxmgr.logging import (
     initialize_logging,
     get_logger,
-    reconfigure_logging,
     LoggingCore,
-    get_trace_id,
     set_trace_id,
-    with_trace_id,
 )
-from sboxmgr.logging.sinks import LogSink
-from sboxmgr.logging.formatters import JSONFormatter, HumanFormatter
 
 
 class TestLoggingIntegration:
@@ -45,7 +37,7 @@ class TestLoggingIntegration:
     def test_structured_logging_with_trace_id(self):
         """Test structured logging includes trace ID."""
         config = LoggingConfig(level="INFO", sinks=["stdout"], format="json")
-        core = initialize_logging(config)
+        initialize_logging(config)
         
         # Get the handler and replace its stream with StringIO
         captured_output = StringIO()

@@ -1,7 +1,6 @@
 import pytest
 from typer.testing import CliRunner
 from sboxmgr.cli.main import app
-import os
 import json
 
 runner = CliRunner()
@@ -49,9 +48,9 @@ def test_run_creates_selected_config_new_arch(tmp_path, monkeypatch, fake_url):
     monkeypatch.setenv("SBOXMGR_BACKUP_FILE", str(tmp_path / "config.json.bak"))
     monkeypatch.setenv("SBOXMGR_URL", fake_url)
     # Пробуем без --url, если не сработает — fallback на --url
-    result = runner.invoke(app, ["run"])
+    result = runner.invoke(app, ["export"])
     if result.exit_code != 0:
-        result = runner.invoke(app, ["run", "-u", fake_url])
+        result = runner.invoke(app, ["export", "-u", fake_url])
     # Принимаем код 0 (успех) или 1 (ошибка подписки, но CLI работает)
     assert result.exit_code in [0, 1], f"Output: {result.output}\nException: {result.exception}"
     # Если команда успешна, проверяем файлы

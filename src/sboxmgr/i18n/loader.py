@@ -9,6 +9,7 @@ import os
 from pathlib import Path
 import locale
 import re
+from typing import Dict, List, Optional, Tuple
 
 class LanguageLoader:
     """Language loader for internationalization support.
@@ -39,8 +40,8 @@ class LanguageLoader:
             lang, _ = self.get_preferred_lang_with_source()
         
         self.lang = lang or "en"
-        self.translations = {}
-        self.en_translations = {}
+        self.translations: Dict[str, str] = {}
+        self.en_translations: Dict[str, str] = {}
         
         self.load()
 
@@ -198,7 +199,18 @@ class LanguageLoader:
         if lang:
             return lang, "env"
         
-        # 2. LANG/LC_ALL
+        # 2. config file
+        config_path = Path.home() / ".sboxmgr" / "config.toml"
+        if config_path.exists():
+            try:
+                import toml
+                cfg = toml.load(config_path)
+                if "default_lang" in cfg:
+                    return cfg["default_lang"], "config"
+            except Exception:
+                pass
+        
+        # 3. LANG/LC_ALL
         for env_var in ["LANG", "LC_ALL"]:
             lang = os.environ.get(env_var)
             if lang:
@@ -207,7 +219,7 @@ class LanguageLoader:
                 if lang_code:
                     return lang_code, "env"
         
-        # 3. system locale
+        # 4. system locale
         try:
             sys_lang = locale.getdefaultlocale()[0]
             if sys_lang:

@@ -6,7 +6,6 @@ and CLI arguments with proper precedence handling.
 
 from pathlib import Path
 from typing import Optional, Dict, Any
-import os
 
 import toml
 import yaml

@@ -1,4 +1,3 @@
-import pytest
 from sboxmgr.utils.cli_common import load_outbounds
 
 

@@ -6,10 +6,11 @@ mechanisms for improved performance when processing multiple subscriptions
 from the same file sources.
 """
 from pathlib import Path
+import threading
+from typing import Dict, Tuple
 from ..models import SubscriptionSource
 from ..base_fetcher import BaseFetcher
 from ..registry import register
-import threading
 
 @register("file")
 class FileFetcher(BaseFetcher):
@@ -24,9 +25,9 @@ class FileFetcher(BaseFetcher):
         _cache_lock: Thread lock for cache synchronization.
         _fetch_cache: Cache dictionary for storing fetched file contents.
     """
-    SUPPORTED_SCHEMES = ("file",)
+    SUPPORTED_SCHEMES: Tuple[str, ...] = ("file",)
     _cache_lock = threading.Lock()
-    _fetch_cache = {}
+    _fetch_cache: Dict[Tuple[str], bytes] = {}
 
     def __init__(self, source: SubscriptionSource):
         super().__init__(source)

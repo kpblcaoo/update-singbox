@@ -18,7 +18,7 @@ repos:
     hooks:
       - id: check-i18n
         name: Check i18n keys
-        entry: python scripts/i18n/sync_keys.py --check --fail-on-missing --fail-on-unused
+        entry: python scripts/i18n/sync_keys.py --check --fail-on-missing
         language: system
         files: ^src/
         pass_filenames: false

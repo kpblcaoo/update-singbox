@@ -5,8 +5,6 @@ Implements the --dump-config quick win from Stage 3 acceptance criteria.
 """
 
 import json
-import sys
-from pathlib import Path
 from typing import Optional
 
 import typer
@@ -113,7 +111,7 @@ def dump_config(
         raise
     
     except ValidationError as e:
-        typer.echo(f"❌ Configuration validation error:", err=True)
+        typer.echo("❌ Configuration validation error:", err=True)
         for error in e.errors():
             field = " -> ".join(str(x) for x in error["loc"])
             typer.echo(f"  {field}: {error['msg']}", err=True)
@@ -148,7 +146,7 @@ def validate_config(
         typer.echo(f"  Log sinks: {', '.join(config.logging.sinks)}")
         
     except ValidationError as e:
-        typer.echo(f"❌ Configuration validation failed:", err=True)
+        typer.echo("❌ Configuration validation failed:", err=True)
         for error in e.errors():
             field = " -> ".join(str(x) for x in error["loc"])
             typer.echo(f"  {field}: {error['msg']}", err=True)

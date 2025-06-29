@@ -1,5 +1,3 @@
-import pytest
-import re
 
 from sboxmgr.i18n.loader import LanguageLoader
 

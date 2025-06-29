@@ -1,9 +1,6 @@
 import os
 import shutil
-import pytest
 from dotenv import load_dotenv
-from .conftest import run_cli
-import json
 from typer.testing import CliRunner
 from sboxmgr.cli.main import app
 from tests.utils.http_mocking import setup_universal_cli_mock
@@ -27,10 +24,9 @@ def test_excluded_index(tmp_path, monkeypatch):
     
     # Add server to exclusions and verify exclusion behavior
     runner.invoke(app, ["exclusions", "-u", os.getenv("TEST_URL", "https://example.com/sub-link"), "--add", "1"])
-    # Используем dry-run для проверки что subscription работает
-    result = runner.invoke(app, ["dry-run", "-u", os.getenv("TEST_URL", "https://example.com/sub-link")])
+    # Используем export --dry-run для проверки что subscription работает
+    result = runner.invoke(app, ["export", "--dry-run", "-u", os.getenv("TEST_URL", "https://example.com/sub-link")])
     
-    output = result.stdout or ""
     # Проверяем что команда выполнилась (возможно с исключениями, но без критических ошибок)
     assert result.exit_code in [0, 1]  # 0 = успех, 1 = валидация не прошла или исключения
 
@@ -43,8 +39,8 @@ def test_excluded_remarks(tmp_path, monkeypatch):
     shutil.copyfile(TEMPLATE_SRC, template_path)
     monkeypatch.setenv("SBOXMGR_TEMPLATE_FILE", str(template_path))
     runner.invoke(app, ["exclusions", "-u", os.getenv("TEST_URL", "https://example.com/sub-link"), "--add", "1"])
-    # Используем dry-run для проверки что subscription работает с исключениями
-    result = runner.invoke(app, ["dry-run", "-u", os.getenv("TEST_URL", "https://example.com/sub-link")])
-    output = result.stdout or ""
+    # Используем export --dry-run для проверки что subscription работает с исключениями
+    result = runner.invoke(app, ["export", "--dry-run", "-u", os.getenv("TEST_URL", "https://example.com/sub-link")])
+    
     # Проверяем что команда выполнилась (возможно с исключениями, но без критических ошибок)
     assert result.exit_code in [0, 1]  # 0 = успех, 1 = валидация не прошла или исключения 

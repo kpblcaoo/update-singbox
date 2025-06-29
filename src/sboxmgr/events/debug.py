@@ -1,7 +1,7 @@
 """Debug event handlers for monitoring and troubleshooting."""
 
 from .types import EventType, EventData
-from .core import EventHandler
+from .core import EventHandler, get_event_manager
 from .decorators import event_handler
 
 
@@ -61,6 +61,5 @@ def log_config_events(event_data: EventData) -> None:
 
 
 # Register global statistics collector
-from .core import get_event_manager
 get_event_manager().register_handler(_stats_collector)
 

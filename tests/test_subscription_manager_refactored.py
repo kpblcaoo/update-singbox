@@ -1,13 +1,11 @@
 """Tests for SubscriptionManager refactoring - validating current behavior before changes."""
 
 import pytest
-from unittest.mock import Mock, patch, MagicMock
-from pathlib import Path
+from unittest.mock import Mock, patch
 import tempfile
-import httpx
 from sboxmgr.subscription.models import SubscriptionSource, PipelineContext, PipelineResult
 from sboxmgr.subscription.manager import SubscriptionManager
-from sboxmgr.subscription.errors import PipelineError, ErrorType
+from sboxmgr.subscription.errors import ErrorType
 
 
 class TestSubscriptionManagerRefactoring:

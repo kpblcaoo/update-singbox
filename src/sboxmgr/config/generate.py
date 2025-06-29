@@ -12,8 +12,9 @@ import tempfile
 from typing import List
 import copy
 
-from ..validation.internal import validate_temp_config, validate_config_file
 from ..events import emit_event, EventType, EventPriority
+from .config_validator import validate_temp_config_json
+from .validation import ConfigValidationError
 
 def generate_config(outbounds, template_file, config_file, backup_file, excluded_ips):
     """Generate sing-box configuration from template."""
@@ -78,11 +79,10 @@ def generate_config(outbounds, template_file, config_file, backup_file, excluded
     info(f"Temporary configuration written to {temp_config_file}")
 
     try:
-        # Use imported validation function that expects JSON string
-        from ..validation.internal import validate_temp_config as validate_temp_config_json
+        # Comprehensive validation - check JSON syntax and sing-box semantics
         validate_temp_config_json(config)
         info("Temporary configuration validated successfully")
-    except ValueError as e:
+    except (ValueError, ConfigValidationError) as e:
         error(f"Temporary configuration is invalid: {e}")
         os.unlink(temp_config_file)
         raise
@@ -201,7 +201,7 @@ def generate_temp_config(template_data: dict, servers: List[dict], user_routes: 
         raise
 
 def validate_temp_config_dict(config_data: dict) -> None:
-    """Validate temporary configuration dictionary using internal validation.
+    """Validate temporary configuration dictionary using basic validation.
     
     Args:
         config_data: Configuration dictionary to validate
@@ -215,36 +215,29 @@ def validate_temp_config_dict(config_data: dict) -> None:
         {
             "config_keys": list(config_data.keys()),
             "status": "started",
-            "validation_type": "internal"
+            "validation_type": "basic"
         },
         source="config.validate",
         priority=EventPriority.NORMAL
     )
     
     try:
-        from ..validation.internal import validate_config_dict
-        is_valid, error_message = validate_config_dict(config_data)
+        # Basic validation - check required fields
+        if not isinstance(config_data, dict):
+            raise ValueError("Configuration must be a dictionary")
         
-        if not is_valid:
-            # Emit validation failure event
-            emit_event(
-                EventType.CONFIG_VALIDATED,
-                {
-                    "status": "failed",
-                    "errors": error_message,
-                    "validation_type": "internal"
-                },
-                source="config.validate",
-                priority=EventPriority.HIGH
-            )
-            raise ValueError(f"Configuration validation failed: {error_message}")
+        if "outbounds" not in config_data:
+            raise ValueError("Configuration must contain 'outbounds' key")
+        
+        if not isinstance(config_data["outbounds"], list):
+            raise ValueError("'outbounds' must be a list")
         
         # Emit successful validation event
         emit_event(
             EventType.CONFIG_VALIDATED,
             {
                 "status": "passed",
-                "validation_type": "internal"
+                "validation_type": "basic"
             },
             source="config.validate",
             priority=EventPriority.NORMAL

@@ -6,7 +6,6 @@ well-defined schemas.
 """
 
 from typing import Any, Dict, List, Optional, Union
-from pathlib import Path
 from pydantic import BaseModel, Field
 from enum import Enum
 

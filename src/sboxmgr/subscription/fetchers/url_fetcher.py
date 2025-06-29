@@ -12,6 +12,7 @@ from ..base_fetcher import BaseFetcher
 from ..registry import register
 import threading
 from sboxmgr.utils.env import get_fetch_timeout
+from typing import Dict, Tuple, Optional
 
 @register("url")
 @register("url_base64")
@@ -28,7 +29,7 @@ class URLFetcher(BaseFetcher):
         _fetch_cache: Cache dictionary for storing fetched data.
     """
     _cache_lock = threading.Lock()
-    _fetch_cache = {}
+    _fetch_cache: Dict[Tuple[str, Optional[str], str], bytes] = {}
 
     def __init__(self, source: SubscriptionSource):
         super().__init__(source)  # SEC: centralized scheme validation

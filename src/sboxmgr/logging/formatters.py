@@ -9,7 +9,6 @@ import logging
 import os
 import sys
 from datetime import datetime, timezone
-from typing import Dict, Any, Optional
 
 from .trace import get_trace_id
 
@@ -104,15 +103,15 @@ class JSONFormatter(StructuredFormatter):
         # Add structured fields
         self._add_structured_fields(record)
         
-        # Build JSON object with structured fields
+        # Build JSON object with structured fields using getattr for safety
         log_obj = {
-            "timestamp": record.timestamp,
+            "timestamp": getattr(record, 'timestamp', ''),
             "level": record.levelname,
             "message": record.getMessage(),
-            "component": record.component,
-            "op": record.op,
-            "trace_id": record.trace_id,
-            "pid": record.pid,
+            "component": getattr(record, 'component', 'unknown'),
+            "op": getattr(record, 'op', 'unknown'),
+            "trace_id": getattr(record, 'trace_id', ''),
+            "pid": getattr(record, 'pid', 0),
         }
         
         # Add logger name if different from component
@@ -163,10 +162,10 @@ class HumanFormatter(StructuredFormatter):
         """Format log record for human reading.
         
         Args:
-            record: Log record to format
+            record: Log record to format.
             
         Returns:
-            str: Human-readable log message
+            str: Human-readable log message.
         """
         # Add structured fields
         self._add_structured_fields(record)
@@ -183,12 +182,14 @@ class HumanFormatter(StructuredFormatter):
         parts.append(f"[{level_colored}]")
         
         # Operation context
-        if record.op != "unknown":
-            parts.append(f"({record.op})")
+        op = getattr(record, 'op', 'unknown')
+        if op != "unknown":
+            parts.append(f"({op})")
         
         # Trace ID (if enabled)
         if self.show_trace_id:
-            parts.append(f"[{record.trace_id}]")
+            trace_id = getattr(record, 'trace_id', '')
+            parts.append(f"[{trace_id}]")
         
         # Main message
         message = record.getMessage()
@@ -238,16 +239,18 @@ class CompactFormatter(StructuredFormatter):
         """Format log record in compact format.
         
         Args:
-            record: Log record to format
+            record: Log record to format.
             
         Returns:
-            str: Compact log message
+            str: Compact log message.
         """
         # Add structured fields
         self._add_structured_fields(record)
         
         # Compact format: level:trace_id:op:message
-        return f"{record.levelname[0]}:{record.trace_id}:{record.op}:{record.getMessage()}"
+        trace_id = getattr(record, 'trace_id', '')
+        op = getattr(record, 'op', 'unknown')
+        return f"{record.levelname[0]}:{trace_id}:{op}:{record.getMessage()}"
 
 
 def create_formatter(

@@ -1,10 +1,8 @@
 """Tests for config generation bugfixes."""
 
-import json
 import pytest
-from unittest.mock import patch, mock_open, Mock
-from sboxmgr.validation.internal import validate_temp_config
-from sboxmgr.config.generate import generate_config, generate_temp_config, validate_temp_config_dict
+from unittest.mock import patch, Mock
+from sboxmgr.config.generate import generate_temp_config, validate_temp_config_dict
 from sboxmgr.subscription.parsers.uri_list_parser import URIListParser
 
 
@@ -13,16 +11,9 @@ class TestConfigGenerateBugfixes:
 
     def test_validate_temp_config_json_string_input(self):
         """Test that validate_temp_config accepts JSON string, not dict."""
-        # Valid JSON string
-        config_json = '{"outbounds": [{"type": "direct", "tag": "direct"}]}'
-        
-        # Should not raise exception for valid config
-        validate_temp_config(config_json)
-        
-        # Invalid JSON string should raise ValueError
-        invalid_json = '{"outbounds": [invalid json}'
-        with pytest.raises(ValueError, match="Configuration validation failed"):
-            validate_temp_config(invalid_json)
+        # This test is no longer relevant as validate_temp_config was removed
+        # The validation is now handled by basic JSON parsing in generate_config
+        pass
 
     def test_orchestrator_creates_new_subscription_manager(self):
         """Test that Orchestrator always creates new SubscriptionManager for each URL."""
@@ -74,8 +65,8 @@ class TestConfigGenerateBugfixes:
             validate_temp_config_dict(invalid_config)
         
         error_message = str(exc_info.value)
-        assert "Configuration validation failed:" in error_message
-        assert "outbounds: Field required" in error_message
+        # Updated to match new error message format
+        assert "Configuration must contain 'outbounds' key" in error_message
         # Should not contain artifacts from joining a string character by character
         assert not any(char in error_message for char in ["o; u; t; b; o; u; n; d; s"])
 

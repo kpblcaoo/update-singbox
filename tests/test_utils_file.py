@@ -1,10 +1,7 @@
 import pytest
-import os
 import json
-import tempfile
-import shutil
 from pathlib import Path
-from unittest.mock import patch, MagicMock, mock_open
+from unittest.mock import patch
 from sboxmgr.utils.file import (
     handle_temp_file,
     atomic_write_json,
@@ -198,7 +195,7 @@ class TestHandleTempFileAdvanced:
                 with open(path) as f:
                     json.load(f)
                 return True
-            except:
+            except (json.JSONDecodeError, FileNotFoundError):
                 return False
         
         result = handle_temp_file(content, str(target_path), validate_fn)

@@ -7,10 +7,8 @@ point for the `sboxctl` console script defined in pyproject.toml.
 import typer
 import os
 from dotenv import load_dotenv
-from sboxmgr.config.fetch import fetch_json
-from sboxmgr.server.exclusions import exclude_servers, remove_exclusions, view_exclusions
-from logsetup.setup import setup_logging
-from sboxmgr.utils.env import get_log_file, get_max_log_size, get_debug_level
+from sboxmgr.logging import initialize_logging
+from sboxmgr.config.models import LoggingConfig
 from sboxmgr.i18n.loader import LanguageLoader
 from pathlib import Path
 import locale
@@ -18,15 +16,22 @@ from sboxmgr.i18n.t import t
 from sboxmgr.cli import plugin_template
 from sboxmgr.cli.commands.config import config_app
 
+# Import commands for registration  
+from sboxmgr.cli.commands.subscription import list_servers as subscription_list_servers
+from sboxmgr.cli.commands.exclusions import exclusions
+from sboxmgr.cli.commands.export import export
+
 load_dotenv()
 
-lang = LanguageLoader(os.getenv('SBOXMGR_LANG', 'en'))
+# Initialize logging for CLI
+logging_config = LoggingConfig(
+    level="INFO",
+    format="text",
+    sinks=["stdout"]
+)
+initialize_logging(logging_config)
 
-# Централизованное логирование для всех CLI-команд
-LOG_FILE = get_log_file()
-MAX_LOG_SIZE = get_max_log_size()
-DEBUG_LEVEL = get_debug_level()
-setup_logging(DEBUG_LEVEL, LOG_FILE, MAX_LOG_SIZE)
+lang = LanguageLoader(os.getenv('SBOXMGR_LANG', 'en'))
 
 app = typer.Typer(help=lang.get("cli.help"))
 
@@ -57,77 +62,6 @@ def is_ai_lang(code):
             return False
     return False
 
-
-
-@app.command(help=t("cli.exclusions.help"))
-def exclusions(
-    url: str = typer.Option(
-        ..., "-u", "--url", help=t("cli.url.help"),
-        envvar=["SBOXMGR_URL", "SINGBOX_URL", "TEST_URL"]
-    ),
-    add: str = typer.Option(None, "--add", help=t("cli.add.help")),
-    remove: str = typer.Option(None, "--remove", help=t("cli.remove.help")),
-    view: bool = typer.Option(False, "--view", help=t("cli.view.help")),
-    debug: int = typer.Option(0, "-d", "--debug", help=t("cli.debug.help")),
-):
-    """Manage server exclusions for subscription filtering.
-    
-    Provides functionality to add, remove, and view server exclusions
-    for subscription-based proxy configurations. Exclusions are persistent
-    and apply to all subscription processing operations.
-    
-    Args:
-        url: Subscription URL to fetch server list from.
-        add: Comma-separated list of servers to exclude.
-        remove: Comma-separated list of servers to remove from exclusions.
-        view: Display current exclusions without modification.
-        debug: Debug verbosity level (0-2).
-        
-    Raises:
-        typer.Exit: On configuration load failure or invalid operations.
-    """
-    try:
-        json_data = fetch_json(url)
-    except Exception as e:
-        typer.echo(f"{lang.get('error.config_load_failed')}: {e}", err=True)
-        raise typer.Exit(1)
-    if view:
-        view_exclusions(debug)
-        raise typer.Exit(0)
-    if add:
-        add_exclusions = [x.strip() for x in add.split(",") if x.strip()]
-        exclude_servers(json_data, add_exclusions, SUPPORTED_PROTOCOLS, debug)
-    if remove:
-        remove_exclusions_list = [x.strip() for x in remove.split(",") if x.strip()]
-        remove_exclusions(remove_exclusions_list, json_data, SUPPORTED_PROTOCOLS, debug)
-    if not (add or remove or view):
-        typer.echo(lang.get("cli.use_add_remove_view"))
-
-@app.command("clear-exclusions", help=t("cli.clear_exclusions.help"))
-def clear_exclusions(
-    confirm: bool = typer.Option(False, "--yes", help=t("cli.confirm.help")),
-    debug: int = typer.Option(0, "-d", "--debug", help=t("cli.debug.help")),
-):
-    """Clear all server exclusions with confirmation.
-    
-    Removes all exclusion entries from the exclusion database. This operation
-    is irreversible and requires explicit confirmation via the --yes flag
-    for safety.
-    
-    Args:
-        confirm: Explicit confirmation flag to proceed with clearing.
-        debug: Debug verbosity level (0-2).
-        
-    Raises:
-        typer.Exit: If confirmation is not provided.
-    """
-    from sboxmgr.server.exclusions import clear_exclusions as do_clear_exclusions
-    if not confirm:
-        typer.echo("[Warning] Use --yes to confirm clearing all exclusions.")
-        raise typer.Exit(1)
-    do_clear_exclusions()
-    typer.echo("All exclusions cleared.")
-
 @app.command("lang")
 def lang_cmd(
     set_lang: str = typer.Option(None, "--set", "-s", help=lang.get("cli.lang.set.help")),
@@ -146,7 +80,6 @@ def lang_cmd(
     
     Args:
         set_lang: Language code to set as default (e.g., 'en', 'ru', 'de').
-        check: Display current language information without modification.
         
     Raises:
         typer.Exit: If specified language is not available or config write fails.
@@ -232,17 +165,16 @@ def lang_cmd(
 app.command("plugin-template")(plugin_template.plugin_template)
 
 # Регистрируем команды из commands/subscription.py
-from sboxmgr.cli.commands.subscription import run as subscription_run, dry_run as subscription_dry_run, list_servers as subscription_list_servers
-app.command("run", help=t("cli.run.help"))(subscription_run)
-app.command()(subscription_dry_run) 
 app.command("list-servers", help=t("cli.list_servers.help"))(subscription_list_servers)
 
-# Регистрируем новую команду exclusions_v2
-from sboxmgr.cli.commands.exclusions_v2 import exclusions_v2
-app.command("exclusions-v2")(exclusions_v2)
+# Регистрируем exclusions (импортированную из commands/exclusions.py)
+app.command("exclusions")(exclusions)
 
 # Регистрируем config команды
 app.add_typer(config_app)
+
+# Регистрируем команду экспорта
+app.command("export", help="Export configurations in standardized formats")(export)
 
 if __name__ == "__main__":
     app() 

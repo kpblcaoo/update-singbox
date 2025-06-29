@@ -11,7 +11,7 @@ from collections import defaultdict
 DEFAULT_LANG_DIR = "src/sboxmgr/i18n"
 TEMPLATE_FILE = ".template.json"
 PY_FILE_PATTERN = re.compile(r"\.(py|pyi)$")
-KEY_PATTERN = re.compile(r"(?:t|lang\.get)\(\s*['\"]([a-zA-Z0-9_.-]+)['\"]\s*\)")
+KEY_PATTERN = re.compile(r"(?:t|lang\.get)\(\s*['\"]([a-zA-Z0-9_.-]+)['\"]\s*(?:,|\))")
 I18N_PREFIXES = ("cli.", "error.", "wizard.")
 
 # --- UTILS ---
@@ -55,6 +55,7 @@ def main():
     parser.add_argument("--src", default="src/", help="Source code root for key search")
     parser.add_argument("--check", action="store_true", help="Check only (no changes)")
     parser.add_argument("--autofix", action="store_true", help="Add missing keys to en.json, create template for others")
+    parser.add_argument("--remove-unused", action="store_true", help="Remove unused keys from all language files")
     parser.add_argument("--fail-on-unused", action="store_true", help="Fail if unused keys found")
     parser.add_argument("--fail-on-missing", action="store_true", help="Fail if missing keys found")
     parser.add_argument("--json", action="store_true", help="Output diff as JSON")
@@ -87,11 +88,30 @@ def main():
                 print(f"[WARN] Unused i18n keys in {lang}.json:")
                 for k in keys:
                     print(f"- {k}")
+    
+    # --- REMOVE UNUSED ---
+    if args.remove_unused:
+        removed_count = 0
+        for lang, keys in unused.items():
+            if keys:
+                path = lang_dir / f"{lang}.json"
+                d = lang_data.get(lang, {})
+                for k in keys:
+                    if k in d:
+                        del d[k]
+                        removed_count += 1
+                save_json(path, d)
+        if removed_count > 0:
+            print(f"[INFO] Removed {removed_count} unused keys from language files.")
+        else:
+            print("[INFO] No unused keys found to remove.")
+    
     # --- TEMPLATE ---
     if args.template and missing:
         template_path = lang_dir / TEMPLATE_FILE
         save_json(template_path, {k: "" for k in missing})
         print(f"[INFO] Template with missing keys written to {template_path}")
+    
     # --- AUTOFIX ---
     if args.autofix and missing:
         # en.json: автозаполнение ключом
@@ -109,6 +129,7 @@ def main():
                 d.setdefault(k, "")
             save_json(path, d)
         print(f"[INFO] Missing keys added to en.json and other languages.")
+    
     # --- EXIT CODE ---
     fail = False
     if args.fail_on_missing and missing:

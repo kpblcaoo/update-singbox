@@ -1,7 +1,7 @@
 """Event filters for advanced event handling."""
 
 from abc import ABC, abstractmethod
-from typing import List, Optional, Set, Pattern
+from typing import Optional, Set, Pattern, Any
 import re
 
 from .types import EventType, EventData
@@ -85,7 +85,7 @@ class SourceFilter(EventFilter):
 class PayloadFilter(EventFilter):
     """Filter events by payload content."""
     
-    def __init__(self, key: str, value: any = None, key_exists: bool = True):
+    def __init__(self, key: str, value: Any = None, key_exists: bool = True):
         """Initialize payload filter.
         
         Args:

@@ -1,4 +1,3 @@
-import pytest
 from sboxmgr.subscription.base_selector import DefaultSelector
 from sboxmgr.subscription.models import ParsedServer
 
@@ -42,7 +41,7 @@ def test_intersecting_user_routes_exclusions():
 
 def test_custom_selector_in_subscription_manager():
     from sboxmgr.subscription.manager import SubscriptionManager
-    from sboxmgr.subscription.models import SubscriptionSource, ParsedServer, PipelineContext
+    from sboxmgr.subscription.models import SubscriptionSource, ParsedServer
     from sboxmgr.subscription.base_selector import BaseSelector
     class OnlyTagBSelector(BaseSelector):
         def select(self, servers, user_routes=None, exclusions=None, mode=None):

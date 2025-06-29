@@ -1,8 +1,6 @@
 import pytest
 import json
-import logging
-from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 from sboxmgr.server.state import load_selected_config, save_selected_config
 
 

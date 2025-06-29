@@ -1,6 +1,5 @@
 """Интеграционные тесты для subscription pipeline после удаления installation wizard."""
 
-import pytest
 import tempfile
 import json
 from pathlib import Path

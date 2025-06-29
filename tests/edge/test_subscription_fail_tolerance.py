@@ -1,9 +1,6 @@
 import pytest
 from sboxmgr.subscription.manager import SubscriptionManager
 from sboxmgr.subscription.models import SubscriptionSource, ParsedServer
-import tempfile
-import os
-import sys
 
 class DummyFetcher:
     def __init__(self, source):
@@ -33,7 +30,6 @@ def patch_registry(monkeypatch):
     # Патчим registry для fetcher
     monkeypatch.setattr("src.sboxmgr.subscription.manager.get_plugin", lambda t: DummyFetcher)
     # Гарантированно патчим detect_parser через sys.modules
-    import types
     import src.sboxmgr.subscription.manager as manager_mod
     manager_mod.detect_parser = lambda raw, t: DummyParser()
 
@@ -62,7 +58,6 @@ def test_fail_tolerant_pipeline(monkeypatch):
             print(f"SRC: {src.url} | EXC: {e}")
             results.append((src.url, "fail", str(e)))
     oks = [r for r in results if r[1] == "ok"]
-    fails = [r for r in results if r[1] == "fail"]
     assert any(oks), "Должна быть хотя бы одна успешная подписка"
     assert len(results) == 5
     for url, status, _ in results:

@@ -6,7 +6,7 @@ from sboxmgr.cli import plugin_template
 from sboxmgr.cli.plugin_template import plugin_template as plugin_template_func
 import tempfile
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 import typer
 
 runner = CliRunner()
@@ -92,9 +92,7 @@ class TestPluginTemplate:
     def test_plugin_template_parser(self, tmp_path):
         """Test plugin_template generates parser template."""
         output_dir = str(tmp_path / "test_output")
-        
-        with patch('typer.echo') as mock_echo:
-            plugin_template_func(type="parser", name="Custom", output_dir=output_dir)
+        plugin_template_func(type="parser", name="Custom", output_dir=output_dir)
         
         # Check files were created
         plugin_file = Path(output_dir) / "custom.py"
@@ -117,9 +115,7 @@ class TestPluginTemplate:
     def test_plugin_template_validator(self, tmp_path):
         """Test plugin_template generates validator template."""
         output_dir = str(tmp_path / "test_output")
-        
-        with patch('typer.echo') as mock_echo:
-            plugin_template_func(type="validator", name="Custom", output_dir=output_dir)
+        plugin_template_func(type="validator", name="Custom", output_dir=output_dir)
         
         # Check files were created
         plugin_file = Path(output_dir) / "custom.py"
@@ -142,9 +138,7 @@ class TestPluginTemplate:
     def test_plugin_template_parsed_validator(self, tmp_path):
         """Test plugin_template generates parsed validator template."""
         output_dir = str(tmp_path / "test_output")
-        
-        with patch('typer.echo') as mock_echo:
-            plugin_template_func(type="parsed_validator", name="Custom", output_dir=output_dir)
+        plugin_template_func(type="parsed_validator", name="Custom", output_dir=output_dir)
         
         # Check files were created
         plugin_file = Path(output_dir) / "custom.py"
@@ -167,9 +161,7 @@ class TestPluginTemplate:
     def test_plugin_template_exporter(self, tmp_path):
         """Test plugin_template generates exporter template."""
         output_dir = str(tmp_path / "test_output")
-        
-        with patch('typer.echo') as mock_echo:
-            plugin_template_func(type="exporter", name="Custom", output_dir=output_dir)
+        plugin_template_func(type="exporter", name="Custom", output_dir=output_dir)
         
         # Check files were created
         plugin_file = Path(output_dir) / "custom.py"
@@ -192,9 +184,7 @@ class TestPluginTemplate:
     def test_plugin_template_postprocessor(self, tmp_path):
         """Test plugin_template generates postprocessor template."""
         output_dir = str(tmp_path / "test_output")
-        
-        with patch('typer.echo') as mock_echo:
-            plugin_template_func(type="postprocessor", name="Custom", output_dir=output_dir)
+        plugin_template_func(type="postprocessor", name="Custom", output_dir=output_dir)
         
         # Check files were created
         plugin_file = Path(output_dir) / "custom.py"
@@ -234,9 +224,7 @@ class TestPluginTemplate:
     def test_plugin_template_case_insensitive_type(self, tmp_path):
         """Test plugin_template handles case insensitive type."""
         output_dir = str(tmp_path / "test_output")
-        
-        with patch('typer.echo') as mock_echo:
-            plugin_template_func(type="FETCHER", name="Custom", output_dir=output_dir)
+        plugin_template_func(type="FETCHER", name="Custom", output_dir=output_dir)
         
         # Should work and create fetcher template
         plugin_file = Path(output_dir) / "custom.py"
@@ -248,9 +236,7 @@ class TestPluginTemplate:
     def test_plugin_template_name_already_has_suffix(self, tmp_path):
         """Test plugin_template handles name that already has correct suffix."""
         output_dir = str(tmp_path / "test_output")
-        
-        with patch('typer.echo') as mock_echo:
-            plugin_template_func(type="fetcher", name="CustomFetcher", output_dir=output_dir)
+        plugin_template_func(type="fetcher", name="CustomFetcher", output_dir=output_dir)
         
         # Should not double-add suffix
         plugin_file = Path(output_dir) / "customfetcher.py"
@@ -266,9 +252,7 @@ class TestPluginTemplate:
             original_cwd = os.getcwd()
             try:
                 os.chdir(tmp_dir)
-                
-                with patch('typer.echo') as mock_echo:
-                    plugin_template_func(type="fetcher", name="Custom", output_dir="plugin_templates")
+                plugin_template_func(type="fetcher", name="Custom", output_dir="plugin_templates")
                 
                 # Should create in default 'plugin_templates' directory
                 plugin_file = Path("plugin_templates") / "custom.py"

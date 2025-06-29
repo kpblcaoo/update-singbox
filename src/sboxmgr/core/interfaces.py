@@ -7,7 +7,7 @@ dependency injection, testing, and architectural separation.
 
 from abc import ABC, abstractmethod
 from typing import List, Dict, Any, Optional
-from sboxmgr.subscription.models import SubscriptionSource, PipelineContext, PipelineResult
+from sboxmgr.subscription.models import PipelineContext, PipelineResult
 
 
 class SubscriptionManagerInterface(ABC):
